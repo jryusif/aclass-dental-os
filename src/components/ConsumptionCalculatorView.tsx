@@ -24,10 +24,10 @@ import {
   BookOpen,
   Check,
   Package,
+  CheckSquare,
 } from 'lucide-react';
 import {
   calculateMaterialEstimation,
-  estimateBondingProtocolCost,
 } from '@/lib/consumption-estimator';
 import {
   verifyClinicalConsumption,
@@ -75,7 +75,7 @@ export default function ConsumptionCalculatorView({
     }
   }, []);
 
-  // --- AI VERIFIER STATE INSIDE CONSUMPTION CALCULATOR ---
+  // --- AUTOMATIC VERIFIER STATE (الفحص والمعايرة التلقائية) ---
   const [verifierName, setVerifierName] = useState('');
   const [verifierPrice, setVerifierPrice] = useState<number | string>(1400);
   const [verifierCapacity, setVerifierCapacity] = useState<number | string>(5);
@@ -86,7 +86,8 @@ export default function ConsumptionCalculatorView({
 
   // Quick preset chips for rapid testing
   const quickTestChips = [
-    { label: 'Clearfil SE Bond 2 (Kuraray)', name: 'Clearfil SE Bond 2', cap: 5, unit: 'ML' as const, price: 1400 },
+    { label: 'Clearfil SE Bond 2 Kit (Kuraray)', name: 'Clearfil SE Bond 2 Kit', cap: 11, unit: 'ML' as const, price: 8000 },
+    { label: '3M Scotchbond Universal (3M)', name: '3M Scotchbond Universal', cap: 5, unit: 'ML' as const, price: 3500 },
     { label: 'Caries Detector Dye (Kuraray)', name: 'Caries Detector Dye', cap: 1.2, unit: 'ML' as const, price: 650 },
     { label: 'Clearfil Majesty Posterior (Kuraray)', name: 'Clearfil Majesty Posterior A2', cap: 4.9, unit: 'G' as const, price: 1250 },
     { label: 'GC EverX Flow Dentin (GC)', name: 'GC EverX Flow Dentin', cap: 3.7, unit: 'G' as const, price: 1100 },
@@ -97,7 +98,7 @@ export default function ConsumptionCalculatorView({
     { label: 'MTA Bioceramic Sealer', name: 'Bio-C Sealer Bioceramic', cap: 2, unit: 'G' as const, price: 1950 },
   ];
 
-  const handleRunAiVerification = (nameOverride?: string, capOverride?: number, unitOverride?: 'ML' | 'G' | 'MG' | 'UNITS' | 'CM', priceOverride?: number) => {
+  const handleRunAutomaticVerification = (nameOverride?: string, capOverride?: number, unitOverride?: 'ML' | 'G' | 'MG' | 'UNITS' | 'CM', priceOverride?: number) => {
     const name = nameOverride || verifierName || 'مادة أسنان غير محددة';
     const cap = capOverride !== undefined ? capOverride : (parseFloat(verifierCapacity as string) || 5);
     const unit = unitOverride || verifierUnit;
@@ -110,7 +111,7 @@ export default function ConsumptionCalculatorView({
       const res = verifyClinicalConsumption(name, cap, unit);
       setVerificationResult(res);
       setIsVerifying(false);
-    }, 250);
+    }, 200);
   };
 
   const handleApplyPresetChip = (chip: typeof quickTestChips[0]) => {
@@ -118,7 +119,7 @@ export default function ConsumptionCalculatorView({
     setVerifierCapacity(chip.cap);
     setVerifierUnit(chip.unit);
     setVerifierPrice(chip.price);
-    handleRunAiVerification(chip.name, chip.cap, chip.unit, chip.price);
+    handleRunAutomaticVerification(chip.name, chip.cap, chip.unit, chip.price);
   };
 
   // Add verified material to consumption ledger and persist
@@ -140,10 +141,10 @@ export default function ConsumptionCalculatorView({
     const newMaterial = {
       id: `mat-verified-${Date.now().toString().slice(-6)}`,
       sku: `MAT-VER-${Date.now().toString().slice(-4)}`,
-      name: verifierName || 'خامة سريرية معتمدة بالـ AI',
-      nameAr: verifierName || 'خامة سريرية معتمدة بالـ AI',
+      name: verifierName || 'خامة سريرية معتمدة تلقائياً',
+      nameAr: verifierName || 'خامة سريرية معتمدة تلقائياً',
       brand: 'Clinical Certified',
-      manufacturer: 'AI & Standards Verified',
+      manufacturer: 'معايرة سريرية تلقائية',
       category: verifierUnit === 'UNITS' ? 'SINGLE_USE_DISPOSABLE' : 'CHEMICAL_DOSING',
       clinicalRole: verificationResult.matchedCategory,
       packageUnit: verifierUnit === 'ML' ? 'BOTTLE' : verifierUnit === 'G' || verifierUnit === 'MG' ? 'SYRINGE' : verifierUnit === 'CM' ? 'ROLL' : 'BOX',
@@ -201,6 +202,110 @@ export default function ConsumptionCalculatorView({
     setTimeout(() => setSaveSuccessMessage(null), 6000);
   };
 
+  // --- RE-ENGINEERED BONDING PROTOCOL STATE (نظام اللواصق التلقائي بدون سؤال عن عدد القطرات) ---
+  const [bondSystemType, setBondSystemType] = useState<'KIT' | 'UNIVERSAL'>('KIT');
+  const [bondKitName, setBondKitName] = useState('Clearfil SE Bond 2 Kit');
+  const [bondKitPrice, setBondKitPrice] = useState<number | string>(8000); // 8000 EGP as requested
+  const [bondPrimerMl, setBondPrimerMl] = useState<number | string>(6); // 6 ml
+  const [bondBondMl, setBondBondMl] = useState<number | string>(5); // 5 ml
+
+  // Universal Single Bottle
+  const [universalName, setUniversalName] = useState('3M Scotchbond Universal');
+  const [universalPrice, setUniversalPrice] = useState<number | string>(3500);
+  const [universalMl, setUniversalMl] = useState<number | string>(5);
+
+  // Microbrushes
+  const [microbrushesCount, setMicrobrushesCount] = useState<number>(2);
+  const [microbrushUnitPrice, setMicrobrushUnitPrice] = useState<number>(1.8);
+
+  // Automatic Calculation for Bonding (Clinical Standard: 1 ml = 20 standard dental drops = 0.05 ml/drop)
+  const STANDARD_DROPS_PER_ML = 20;
+
+  // Kit Calculation
+  const numKitPrice = parseFloat(bondKitPrice as string) || 0;
+  const numPrimerMl = parseFloat(bondPrimerMl as string) || 6;
+  const numBondMl = parseFloat(bondBondMl as string) || 5;
+  // Usable kit cases determined by the smaller bottle (Bond 5ml = 100 cases)
+  const kitUsableCases = Math.round(Math.min(numPrimerMl, numBondMl) * STANDARD_DROPS_PER_ML);
+  const kitAdhesiveCostPerCase = kitUsableCases > 0 ? numKitPrice / kitUsableCases : 0;
+  const kitTotalProtocolCost = kitAdhesiveCostPerCase + (microbrushesCount * microbrushUnitPrice);
+
+  // Universal Calculation
+  const numUniPrice = parseFloat(universalPrice as string) || 0;
+  const numUniMl = parseFloat(universalMl as string) || 5;
+  const uniUsableCases = Math.round(numUniMl * STANDARD_DROPS_PER_ML);
+  const uniAdhesiveCostPerCase = uniUsableCases > 0 ? numUniPrice / uniUsableCases : 0;
+  const uniTotalProtocolCost = uniAdhesiveCostPerCase + (microbrushesCount * microbrushUnitPrice);
+
+  // Inject Adhesive System into Consumption Ledger & Services
+  const handleInjectBondIntoLedger = () => {
+    const isKit = bondSystemType === 'KIT';
+    const name = isKit ? bondKitName : universalName;
+    const price = isKit ? numKitPrice : numUniPrice;
+    const cases = isKit ? kitUsableCases : uniUsableCases;
+    const costPerCase = isKit ? kitAdhesiveCostPerCase : uniAdhesiveCostPerCase;
+    const totalMl = isKit ? numPrimerMl + numBondMl : numUniMl;
+
+    const newAdhesive = {
+      id: `bond-sys-${Date.now().toString().slice(-6)}`,
+      sku: `BOND-${Date.now().toString().slice(-4)}`,
+      name: name,
+      nameAr: isKit ? `طقم لاصق كامل ${name} (برايمر ${numPrimerMl} مل + بوند ${numBondMl} مل)` : `لاصق يونيفرسال ${name} (${numUniMl} مل)`,
+      brand: isKit ? 'Kuraray Noritake' : '3M / Clinical',
+      manufacturer: 'معايرة سريرية تلقائية',
+      category: 'CHEMICAL_DOSING',
+      clinicalRole: 'أنظمة الربط واللواصق العاجية المباشرة (Adhesive Systems)',
+      packageUnit: 'BOTTLE',
+      packageQuantity: totalMl,
+      baseUnit: isKit ? 'جرعة حالة (برايمر + بوند)' : 'قطرة سريرية',
+      conversionFactor: cases,
+      costPerBaseUnit: parseFloat(costPerCase.toFixed(2)),
+      unusableWastePercent: 10,
+      notes: isKit
+        ? `طقم لاصق كامل سعر الشراء ${price} ج.م يشمل برايمر ${numPrimerMl}مل وبوند ${numBondMl}مل. يكفي تلقائياً ${cases} حالة بمعدل ${costPerCase.toFixed(2)} ج.م للحالة (معايير ADA & Kuraray)`
+        : `عبوة يونيفرسال سعر الشراء ${price} ج.م حجم ${totalMl}مل. تكفي تلقائياً ${cases} حالة بمعدل ${costPerCase.toFixed(2)} ج.م للحالة`,
+      usedInProcedures: ['حشو كمبوزيت مباشر كلاس 1', 'ترميمات كلاس 2 حيوية', 'بناء دعامة كور'],
+      packagePrice: price,
+      costPerCase: parseFloat(costPerCase.toFixed(2)),
+    };
+
+    const updated = [newAdhesive, ...localMaterials];
+    setLocalMaterials(updated);
+
+    // Save to localStorage
+    try {
+      const stored = localStorage.getItem('dental_os_custom_materials');
+      const parsed = stored ? JSON.parse(stored) : [];
+      localStorage.setItem('dental_os_custom_materials', JSON.stringify([newAdhesive, ...parsed]));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+
+    // Post to API
+    fetch('/api/materials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clinicId,
+        name: newAdhesive.name,
+        nameAr: newAdhesive.nameAr,
+        brand: newAdhesive.brand,
+        category: newAdhesive.category,
+        packagePurchasePrice: price,
+        packageQuantity: totalMl,
+        packageUnit: newAdhesive.packageUnit,
+        baseUnit: newAdhesive.baseUnit,
+        conversionFactor: cases,
+        unusableWastePercent: 10,
+        notes: newAdhesive.notes,
+      }),
+    }).catch((err) => console.warn('Background material persist error:', err));
+
+    setSaveSuccessMessage(`تم بنجاح إدراج نظام البوند "${newAdhesive.nameAr}" بتكلفة (${costPerCase.toFixed(2)} ج.م / حالة) في سجل المستهلكات وتفعيله فورياً في تسعير الخدمات!`);
+    setActiveTab('registry');
+    setTimeout(() => setSaveSuccessMessage(null), 7000);
+  };
+
   // Filtered Ledger List
   const filteredLedger = localMaterials.filter((m) => {
     const q = ledgerSearch.toLowerCase();
@@ -216,29 +321,6 @@ export default function ConsumptionCalculatorView({
       (ledgerCategoryFilter === 'DISPOSABLES' && m.category === 'SINGLE_USE_DISPOSABLE');
 
     return matchesSearch && matchesCategory;
-  });
-
-  // Bonding Protocol State (Clearfil SE Bond 2)
-  const [primerBottlePrice, setPrimerBottlePrice] = useState(1100);
-  const [primerBottleMl, setPrimerBottleMl] = useState(6);
-  const [bondBottlePrice, setBondBottlePrice] = useState(1300);
-  const [bondBottleMl, setBondBottleMl] = useState(5);
-  const [dropsPerMl, setDropsPerMl] = useState(48);
-  const [primerDropsUsed, setPrimerDropsUsed] = useState(1);
-  const [bondDropsUsed, setBondDropsUsed] = useState(1);
-  const [microbrushesCount, setMicrobrushesCount] = useState(2);
-  const [microbrushUnitPrice, setMicrobrushUnitPrice] = useState(1.8);
-
-  const bondCalc = estimateBondingProtocolCost({
-    primerBottlePrice,
-    primerBottleMl,
-    bondBottlePrice,
-    bondBottleMl,
-    dropsPerMl,
-    primerDropsUsed,
-    bondDropsUsed,
-    microbrushesCount,
-    microbrushUnitPrice,
   });
 
   // Composite Syringe State
@@ -285,7 +367,7 @@ export default function ConsumptionCalculatorView({
     <div className="flex-1 flex flex-col bg-slate-50/50">
       <Header
         title={t.nav.consumption}
-        subtitle="حاسبة استهلاك الخامات الذكية، بروتوكولات اللواصق والألياف، والمعايرة السريرية المعتمدة بالـ AI"
+        subtitle="حاسبة استهلاك الخامات التلقائية، بروتوكولات اللواصق والألياف، والمعايرة السريرية المعتمدة"
       />
 
       <div className="p-6 space-y-6 max-w-7xl mx-auto w-full">
@@ -300,7 +382,7 @@ export default function ConsumptionCalculatorView({
             }`}
           >
             <Sparkles className="w-4 h-4 text-teal-600" />
-            <span>سجل فحص ومعايرة الخامات بالـ AI والمعايير السريرية</span>
+            <span>سجل فحص ومعايرة الخامات التلقائي وفق المعايير السريرية</span>
           </button>
 
           <button
@@ -312,7 +394,7 @@ export default function ConsumptionCalculatorView({
             }`}
           >
             <Droplet className="w-4 h-4 text-teal-600" />
-            <span>نظام اللواصق (Primer & Bond Drops)</span>
+            <span>نظام اللواصق التلقائي (طقم كامل أو يونيفرسال)</span>
           </button>
 
           <button
@@ -353,7 +435,7 @@ export default function ConsumptionCalculatorView({
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 0: AI & CLINICAL STANDARDS REGISTRY & LIVE CALCULATOR (THE MAIN HUB) */}
+        {/* TAB 0: AUTOMATIC REGISTRY & LIVE CALCULATOR (THE MAIN HUB)                */}
         {/* ========================================================================= */}
         {activeTab === 'registry' && (
           <div className="space-y-6">
@@ -365,7 +447,7 @@ export default function ConsumptionCalculatorView({
               </div>
             )}
 
-            {/* AI Verifier Card */}
+            {/* Automatic Verifier Card */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
@@ -373,16 +455,16 @@ export default function ConsumptionCalculatorView({
                     <span className="p-1.5 rounded-lg bg-teal-100 text-teal-800">
                       <Sparkles className="w-5 h-5" />
                     </span>
-                    فحص ومعايرة الخامات بالـ AI والمعايير السريرية الدولية
+                    فحص ومعايرة الخامات التلقائي وفق المعايير السريرية الدولية
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    أدخل أي خامة بوحدتها (ملليلتر ml، جرام g، ملليجرام mg، وحدات/قطع، أو سم cm) ليقوم الـ AI بالتحقق من معدل استهلاكها الحقيقي ومطابقتها مع مراجع ADA و ISO وبروتوكول د. باسكال ماجني.
+                    أدخل أي خامة بوحدتها (ملليلتر ml، جرام g، ملليجرام mg، وحدات/قطع، أو سم cm) ليقوم النظام تلقائياً بحساب معدل استهلاكها الحقيقي ومطابقتها مع مراجع ADA و ISO وبروتوكول د. باسكال ماجني.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 self-start md:self-auto">
                   <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    معتمد من ADA & ISO & Biomimetic
+                    معايير معتمدة: ADA & ISO & Biomimetic
                   </span>
                 </div>
               </div>
@@ -390,7 +472,7 @@ export default function ConsumptionCalculatorView({
               {/* Quick Preset Chips */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-bold text-slate-600 block">
-                  ⚡ نماذج سريعة للفحص والمعايرة الفورية:
+                  ⚡ نماذج سريرية سريعة للفحص والمعايرة الفورية:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {quickTestChips.map((chip, idx) => (
@@ -471,19 +553,19 @@ export default function ConsumptionCalculatorView({
                 <div className="lg:col-span-2 flex items-end">
                   <button
                     type="button"
-                    onClick={() => handleRunAiVerification()}
+                    onClick={() => handleRunAutomaticVerification()}
                     disabled={isVerifying}
                     className="w-full text-xs rounded-xl py-2.5 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-60"
                   >
                     {isVerifying ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>جاري الفحص...</span>
+                        <span>جاري الحساب...</span>
                       </>
                     ) : (
                       <>
                         <Search className="w-4 h-4" />
-                        <span>فحص بالـ AI والمعايير</span>
+                        <span>فحص وحساب تلقائي معتمد</span>
                       </>
                     )}
                   </button>
@@ -669,12 +751,12 @@ export default function ConsumptionCalculatorView({
                                 setVerifierName(mat.name || mat.nameAr);
                                 setVerifierCapacity(mat.packageQuantity || 5);
                                 setVerifierPrice(mat.packagePrice || 1200);
-                                handleRunAiVerification(mat.name || mat.nameAr, mat.packageQuantity || 5, 'ML', mat.packagePrice || 1200);
+                                handleRunAutomaticVerification(mat.name || mat.nameAr, mat.packageQuantity || 5, 'ML', mat.packagePrice || 1200);
                                 window.scrollTo({ top: 180, behavior: 'smooth' });
                               }}
                               className="px-2 py-1 rounded bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-[10px] border border-teal-200 transition-colors"
                             >
-                              إعادة الفحص بالـ AI
+                              إعادة الحساب التلقائي
                             </button>
                           </td>
                         </tr>
@@ -688,139 +770,325 @@ export default function ConsumptionCalculatorView({
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 1: BONDING SYSTEMS (CLEARFIL SE BOND 2 & PRIMERS)                      */}
+        {/* TAB 1: RE-ENGINEERED AUTOMATIC BONDING SYSTEMS                            */}
+        {/* (طقم كامل برايمر + بوند بسعر إجمالي أو عبوة يونيفرسال واحدة بدون سؤال عن القطرات) */}
         {/* ========================================================================= */}
         {activeTab === 'bonding' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
-                  <Droplet className="w-4 h-4 text-teal-600" />
-                  معايرة قطرات لاصق Clearfil SE Bond 2 (Primer vs Bond)
-                </h3>
-                <GuideTooltip topicId="idsProtocol" label="دليل بروتوكول الختم العاجي (IDS)" />
+          <div className="space-y-6">
+            {/* Success Notification */}
+            {saveSuccessMessage && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-900 text-xs font-bold shadow-xs">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>{saveSuccessMessage}</span>
               </div>
-              <p className="text-xs text-slate-500">
-                حساب تكلفة البروتوكول اللاصق بدقة بعدد القطرات المنفصلة للبرايمر والبوند وتكلفة الميكروبرش
-              </p>
+            )}
 
-              <div className="grid grid-cols-2 gap-3.5 pt-2">
+            {/* Bonding Selector Mode */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    سعر عبوة البرايمر (Primer 6ml)
-                  </label>
-                  <input
-                    type="number"
-                    value={primerBottlePrice}
-                    onChange={(e) => setPrimerBottlePrice(Number(e.target.value))}
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 font-mono"
-                  />
+                  <h3 className="text-base font-extrabold text-navy-950 flex items-center gap-2">
+                    <Droplet className="w-5 h-5 text-teal-600" />
+                    حاسبة نظام اللواصق التلقائية (Adhesive Protocol Costing)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    أدخل سعر العلبة وحجمها بالمللي فقط، وسيقوم النظام تلقائياً وبناءً على المعايير السريرية بحساب تكلفة الحالة الواحدة بدون الحاجة لحساب عدد القطرات يدوياً.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    سعر عبوة البوند (Bond 5ml)
-                  </label>
-                  <input
-                    type="number"
-                    value={bondBottlePrice}
-                    onChange={(e) => setBondBottlePrice(Number(e.target.value))}
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    متوسط عدد القطرات بالمليلتر (Drops / ml)
-                  </label>
-                  <input
-                    type="number"
-                    value={dropsPerMl}
-                    onChange={(e) => setDropsPerMl(Number(e.target.value))}
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    سعر الميكروبرش الواحدة (ج.م)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={microbrushUnitPrice}
-                    onChange={(e) => setMicrobrushUnitPrice(Number(e.target.value))}
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    قطرات البرايمر المستهلكة بالحالة
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={primerDropsUsed}
-                    onChange={(e) => setPrimerDropsUsed(Number(e.target.value))}
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    قطرات البوند المستهلكة بالحالة
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={bondDropsUsed}
-                    onChange={(e) => setBondDropsUsed(Number(e.target.value))}
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Results Panel */}
-            <div className="lg:col-span-5 bg-gradient-to-br from-navy-900 to-navy-850 text-white p-5 rounded-xl shadow-md flex flex-col justify-between space-y-4">
-              <div>
-                <span className="text-[10px] font-semibold tracking-wider text-sage-300 uppercase">
-                  التكلفة الدقيقة للبروتوكول اللاصق للحالة
-                </span>
-                <p className="text-3xl font-extrabold font-mono text-sage-400 mt-1">
-                  {bondCalc.totalProtocolCost.toFixed(2)}{' '}
-                  <span className="text-sm font-sans text-slate-300">ج.م / ترميم</span>
-                </p>
-                <p className="text-xs text-slate-300 mt-2">
-                  شاملة {primerDropsUsed} قطرة برايمر + {bondDropsUsed} قطرة بوند + {microbrushesCount} ميكروبرش
-                </p>
-              </div>
-
-              <div className="space-y-2 text-xs pt-4 border-t border-navy-700 text-slate-200">
-                <div className="flex justify-between">
-                  <span>تكلفة قطرة البرايمر الواحدة:</span>
-                  <span className="font-mono font-bold text-white">{bondCalc.costPerPrimerDrop} ج.م</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>تكلفة قطرة البوند الواحدة:</span>
-                  <span className="font-mono font-bold text-white">{bondCalc.costPerBondDrop} ج.م</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>إجمالي عدد قطرات زجاجة البرايمر:</span>
-                  <span className="font-mono text-slate-300">{primerBottleMl * dropsPerMl} قطرة</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>إجمالي عدد قطرات زجاجة البوند:</span>
-                  <span className="font-mono text-slate-300">{bondBottleMl * dropsPerMl} قطرة</span>
+                {/* System Toggle: Kit vs Universal */}
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setBondSystemType('KIT')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      bondSystemType === 'KIT'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    طقم ثنائي كامل (Primer + Bond معاً)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBondSystemType('UNIVERSAL')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      bondSystemType === 'UNIVERSAL'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    عبوة يونيفرسال أحادية (Single Bottle)
+                  </button>
                 </div>
               </div>
 
-              <div className="p-2.5 bg-navy-800/80 rounded-lg border border-navy-700 text-[11px] text-slate-300">
-                قاعدة سريرية: تجنب إفراز قطرات زائدة في طبق المزج (Dappen dish) لتقليل الفاقد الناتج عن تبخر المذيبات.
-              </div>
+              {/* MODE 1: KIT (SE BOND 2 & TWO-BOTTLE SYSTEMS) */}
+              {bondSystemType === 'KIT' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <div className="lg:col-span-7 space-y-4">
+                    <div className="bg-teal-50/60 p-3.5 rounded-xl border border-teal-200 text-xs text-teal-900 flex items-start gap-2">
+                      <BookmarkCheck className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>المعيار الذهبي لطب الأسنان الحيوي (Gold Standard 2-Step Self-Etch):</strong>
+                        <p className="text-[11px] text-teal-800 mt-0.5 leading-relaxed">
+                          يُباع طقم Clearfil SE Bond 2 كعلبة واحدة متكاملة تحتوي على زجاجة برايمر 6 مل وزجاجة بوند 5 مل. لا تحتاج لإدخال عدد القطرات؛ فكل 1 مل يفرز 20 قطرة سريرية متجانسة كافية لـ 100 حالة كاملة.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          اسم طقم اللاصق الكامل
+                        </label>
+                        <input
+                          type="text"
+                          value={bondKitName}
+                          onChange={(e) => setBondKitName(e.target.value)}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2.5 font-bold bg-white"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          سعر شراء العلبة الكاملة (Primer + Bond معاً) بالجنيه *
+                        </label>
+                        <input
+                          type="number"
+                          value={bondKitPrice}
+                          onChange={(e) => setBondKitPrice(e.target.value)}
+                          placeholder="8000"
+                          className="w-full text-sm rounded-xl border border-slate-300 p-2.5 font-mono font-bold text-teal-950 bg-white focus:ring-1 focus:ring-teal-500"
+                        />
+                        <span className="text-[11px] text-slate-500 block mt-1">
+                          سعر العبوة الواحدة المجمعة (مثال: 8000 ج.م)
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          حجم عبوة البرايمر (Primer) بالمللي *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={bondPrimerMl}
+                          onChange={(e) => setBondPrimerMl(e.target.value)}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2 font-mono font-bold bg-white"
+                        />
+                        <span className="text-[10px] text-slate-400 block mt-0.5">القياسي: 6 مل</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          حجم عبوة البوند (Bond) بالمللي *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={bondBondMl}
+                          onChange={(e) => setBondBondMl(e.target.value)}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2 font-mono font-bold bg-white"
+                        />
+                        <span className="text-[10px] text-slate-400 block mt-0.5">القياسي: 5 مل</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          عدد الميكروبرش المستخدم لكل حالة
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="4"
+                          value={microbrushesCount}
+                          onChange={(e) => setMicrobrushesCount(Number(e.target.value))}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2 font-mono bg-white"
+                        />
+                        <span className="text-[10px] text-slate-400 block mt-0.5">1 برايمر + 1 بوند</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          سعر الميكروبرش الواحدة (ج.م)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={microbrushUnitPrice}
+                          onChange={(e) => setMicrobrushUnitPrice(Number(e.target.value))}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2 font-mono bg-white"
+                        />
+                        <span className="text-[10px] text-slate-400 block mt-0.5">1.80 ج.م للقطعة</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Results Panel for Kit */}
+                  <div className="lg:col-span-5 bg-gradient-to-br from-navy-900 to-navy-850 text-white p-5 rounded-2xl shadow-md flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[10px] font-semibold tracking-wider text-teal-300 uppercase block">
+                        التكلفة التلقائية المحسوبة للحالة الواحدة
+                      </span>
+                      <p className="text-3xl font-extrabold font-mono text-teal-400 mt-1">
+                        {kitTotalProtocolCost.toFixed(2)}{' '}
+                        <span className="text-sm font-sans text-slate-300">ج.م / حالة</span>
+                      </p>
+                      <p className="text-xs text-slate-300 mt-1.5">
+                        تشمل: 1 قطرة برايمر + 1 قطرة بوند ({kitAdhesiveCostPerCase.toFixed(2)} ج.م) + {microbrushesCount} ميكروبرش ({(microbrushesCount * microbrushUnitPrice).toFixed(2)} ج.م)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5 text-xs pt-4 border-t border-navy-700 text-slate-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">عدد الحالات الصافية التي تكفيها العلبة:</span>
+                        <span className="font-mono font-bold text-white text-sm">{kitUsableCases} حالة كاملة</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">تكلفة لاصق السن الواحد (Adhesive Only):</span>
+                        <span className="font-mono font-bold text-teal-300">{kitAdhesiveCostPerCase.toFixed(2)} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">إجمالي سائل العلبة:</span>
+                        <span className="font-mono text-slate-300">{numPrimerMl + numBondMl} مل ({numPrimerMl}مل برايمر + {numBondMl}مل بوند)</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">المعيار السريري التلقائي:</span>
+                        <span className="text-[11px] text-teal-200">1 مل = 20 قطرة طبية متجانسة</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleInjectBondIntoLedger}
+                      className="w-full py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>➕ إدراج نظام البوند تلقائياً في فحص وسجل المستهلكات والخدمات</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* MODE 2: UNIVERSAL (SINGLE BOTTLE SYSTEM) */}
+              {bondSystemType === 'UNIVERSAL' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <div className="lg:col-span-7 space-y-4">
+                    <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-start gap-2">
+                      <BookmarkCheck className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>الأنظمة الأحادية اليونيفرسال (Single-Bottle Universal Systems):</strong>
+                        <p className="text-[11px] text-blue-800 mt-0.5 leading-relaxed">
+                          مثل 3M Scotchbond Universal أو Single Bond Universal أو GC G-Premio. عبوة واحدة فقط تُستخدم مباشرة. يقوم النظام تلقائياً بحساب عدد القطرات بتكلفة الجلسة.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          اسم لاصق اليونيفرسال
+                        </label>
+                        <input
+                          type="text"
+                          value={universalName}
+                          onChange={(e) => setUniversalName(e.target.value)}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2.5 font-bold bg-white"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          سعر زجاجة اليونيفرسال بالجنيه *
+                        </label>
+                        <input
+                          type="number"
+                          value={universalPrice}
+                          onChange={(e) => setUniversalPrice(e.target.value)}
+                          placeholder="3500"
+                          className="w-full text-sm rounded-xl border border-slate-300 p-2.5 font-mono font-bold text-blue-950 bg-white focus:ring-1 focus:ring-blue-500"
+                        />
+                        <span className="text-[11px] text-slate-500 block mt-1">
+                          سعر الزجاجة الواحدة (مثال: 3500 ج.م)
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          حجم الزجاجة بالمللي *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={universalMl}
+                          onChange={(e) => setUniversalMl(e.target.value)}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2 font-mono font-bold bg-white"
+                        />
+                        <span className="text-[10px] text-slate-400 block mt-0.5">القياسي: 5 مل</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          عدد الميكروبرش لكل حالة
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="3"
+                          value={microbrushesCount}
+                          onChange={(e) => setMicrobrushesCount(Number(e.target.value))}
+                          className="w-full text-xs rounded-xl border border-slate-300 p-2 font-mono bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Results Panel for Universal */}
+                  <div className="lg:col-span-5 bg-gradient-to-br from-navy-900 to-navy-850 text-white p-5 rounded-2xl shadow-md flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[10px] font-semibold tracking-wider text-teal-300 uppercase block">
+                        التكلفة التلقائية المحسوبة للحالة الواحدة
+                      </span>
+                      <p className="text-3xl font-extrabold font-mono text-teal-400 mt-1">
+                        {uniTotalProtocolCost.toFixed(2)}{' '}
+                        <span className="text-sm font-sans text-slate-300">ج.م / حالة</span>
+                      </p>
+                      <p className="text-xs text-slate-300 mt-1.5">
+                        تشمل: 1 قطرة بوند يونيفرسال ({uniAdhesiveCostPerCase.toFixed(2)} ج.م) + {microbrushesCount} ميكروبرش ({(microbrushesCount * microbrushUnitPrice).toFixed(2)} ج.م)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5 text-xs pt-4 border-t border-navy-700 text-slate-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">عدد الحالات الصافية للزجاجة:</span>
+                        <span className="font-mono font-bold text-white text-sm">{uniUsableCases} حالة</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">تكلفة القطرة الواحدة:</span>
+                        <span className="font-mono font-bold text-teal-300">{uniAdhesiveCostPerCase.toFixed(2)} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">الحجم الصافي:</span>
+                        <span className="font-mono text-slate-300">{numUniMl} مل</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">المعيار التلقائي:</span>
+                        <span className="text-[11px] text-teal-200">20 قطرة لكل 1 مل</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleInjectBondIntoLedger}
+                      className="w-full py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>➕ إدراج نظام البوند تلقائياً في فحص وسجل المستهلكات والخدمات</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

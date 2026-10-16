@@ -645,7 +645,7 @@ export default function MaterialsView({
                       title="فحص معدل الاستهلاك السريري بناءً على معايير الجمعية الأمريكية لطب الأسنان"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>فحص بالـ AI والمعايير</span>
+                      <span>فحص وحساب تلقائي</span>
                     </button>
                   )}
                 </div>
