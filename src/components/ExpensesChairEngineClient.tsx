@@ -19,6 +19,16 @@ import {
   Sparkles,
   X,
   HelpCircle,
+  Save,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  FileCheck,
+  Paintbrush,
+  ShieldCheck,
+  ArrowRight,
+  TrendingUp,
 } from 'lucide-react';
 
 interface ExpensesChairEngineProps {
@@ -37,6 +47,125 @@ export default function ExpensesChairEngineClient({
   const [occupancyRate, setOccupancyRate] = useState<number>(
     clinic.occupancyRate > 1 ? clinic.occupancyRate : (clinic.occupancyRate || 0.7) * 100
   );
+
+  // Fit-out & Interior Renovation Amortization (تجهيزات وتشطيبات وديكور العيادة)
+  const [fitoutTotalCost, setFitoutTotalCost] = useState<number | string>(300000);
+  const [fitoutYears, setFitoutYears] = useState<number | string>(5);
+  const [includeFitoutInChairRate, setIncludeFitoutInChairRate] = useState<boolean>(true);
+  const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
+
+  // Detailed items of clinic fit-out
+  const [fitoutItems, setFitoutItems] = useState<{
+    plumbing: number;
+    electrical: number;
+    hvac: number;
+    finishes: number;
+    furniture: number;
+    facadeSignage: number;
+  }>({
+    plumbing: 75000,
+    electrical: 60000,
+    hvac: 50000,
+    finishes: 45000,
+    furniture: 40000,
+    facadeSignage: 30000,
+  });
+
+  const [isSavingClinicParams, setIsSavingClinicParams] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [isRegisteringAsset, setIsRegisteringAsset] = useState(false);
+  const [assetSuccessMsg, setAssetSuccessMsg] = useState<string | null>(null);
+
+  // Sync fit-out from localStorage per clinic branch
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`dental_os_fitout_${clinic.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.totalCost !== undefined) setFitoutTotalCost(parsed.totalCost);
+        if (parsed.years !== undefined) setFitoutYears(parsed.years);
+        if (parsed.includeInRate !== undefined) setIncludeFitoutInChairRate(parsed.includeInRate);
+        if (parsed.items) setFitoutItems(parsed.items);
+      }
+    } catch (e) {
+      console.warn('Fitout load error:', e);
+    }
+  }, [clinic.id]);
+
+  const handleUpdateFitout = (
+    cost: number | string,
+    years: number | string,
+    include: boolean,
+    customItems?: typeof fitoutItems
+  ) => {
+    setFitoutTotalCost(cost);
+    setFitoutYears(years);
+    setIncludeFitoutInChairRate(include);
+    const itemsToSave = customItems || fitoutItems;
+    if (customItems) setFitoutItems(customItems);
+    try {
+      localStorage.setItem(`dental_os_fitout_${clinic.id}`, JSON.stringify({
+        totalCost: cost,
+        years,
+        includeInRate: include,
+        items: itemsToSave,
+      }));
+    } catch (e) {
+      console.warn('Fitout save error:', e);
+    }
+  };
+
+  const handleItemChange = (field: keyof typeof fitoutItems, val: number | string) => {
+    const num = Math.max(0, parseFloat(val as string) || 0);
+    const updated = { ...fitoutItems, [field]: num };
+    const sum = Object.values(updated).reduce((acc, curr) => acc + curr, 0);
+    handleUpdateFitout(sum, fitoutYears, includeFitoutInChairRate, updated);
+  };
+
+  const applyPreset = (presetType: 'eco' | 'standard' | 'luxury') => {
+    let newItems: typeof fitoutItems;
+    let years = 5;
+    if (presetType === 'eco') {
+      newItems = {
+        plumbing: 45000,
+        electrical: 35000,
+        hvac: 30000,
+        finishes: 30000,
+        furniture: 25000,
+        facadeSignage: 15000,
+      };
+      years = 3;
+    } else if (presetType === 'luxury') {
+      newItems = {
+        plumbing: 140000,
+        electrical: 105000,
+        hvac: 95000,
+        finishes: 80000,
+        furniture: 60000,
+        facadeSignage: 40000,
+      };
+      years = 7;
+    } else {
+      // standard
+      newItems = {
+        plumbing: 75000,
+        electrical: 60000,
+        hvac: 50000,
+        finishes: 45000,
+        furniture: 40000,
+        facadeSignage: 30000,
+      };
+      years = 5;
+    }
+    const sum = Object.values(newItems).reduce((acc, curr) => acc + curr, 0);
+    handleUpdateFitout(sum, years, true, newItems);
+  };
+
+  // Calculations
+  const numFitoutCost = parseFloat(fitoutTotalCost as string) || 0;
+  const numFitoutYears = parseFloat(fitoutYears as string) || 5;
+  const fitoutMonths = numFitoutYears * 12;
+  const monthlyFitoutAmortization = fitoutMonths > 0 ? numFitoutCost / fitoutMonths : 0;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,7 +187,10 @@ export default function ExpensesChairEngineClient({
   };
 
   // Calculations
-  const totalMonthlyExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+  const totalMonthlyOperationalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+  const totalMonthlyExpenses = includeFitoutInChairRate
+    ? totalMonthlyOperationalExpenses + monthlyFitoutAmortization
+    : totalMonthlyOperationalExpenses;
 
   // Group expenses by category
   const expensesByCategory = expenses.reduce((acc: Record<string, number>, e) => {
@@ -73,6 +205,76 @@ export default function ExpensesChairEngineClient({
   // Direct Chair-Hour & Chair-Minute Rates
   const chairHourCost = effectiveHours > 0 ? totalMonthlyExpenses / effectiveHours : 0;
   const chairMinuteCost = chairHourCost / 60;
+  const fitoutMinuteImpact = effectiveHours > 0 && includeFitoutInChairRate ? (monthlyFitoutAmortization / effectiveHours) / 60 : 0;
+
+  const handleSaveClinicParams = async () => {
+    setIsSavingClinicParams(true);
+    setSaveSuccessMsg(null);
+    try {
+      const res = await fetch('/api/clinics', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: clinic.id,
+          monthlyFixedExpenses: Number(totalMonthlyExpenses.toFixed(2)),
+          activeChairs,
+          dailyWorkingHours: dailyHours,
+          workingDaysPerMonth: workingDays,
+          occupancyRate: occupancyRate > 1 ? occupancyRate / 100 : occupancyRate,
+          breakEvenTargetMonthly: Number(totalMonthlyExpenses.toFixed(2)),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSaveSuccessMsg('✓ تم حفظ ومزامنة معايير التشغيل ومصروفات الكرسي بقاعدة بيانات الفرع بنجاح!');
+        setTimeout(() => setSaveSuccessMsg(null), 4000);
+      } else {
+        alert(data.error || 'فشل حفظ التعديلات في قاعدة البيانات');
+      }
+    } catch (err) {
+      console.error('Error saving clinic parameters:', err);
+      alert('حدث خطأ أثناء حفظ التعديلات');
+    } finally {
+      setIsSavingClinicParams(false);
+    }
+  };
+
+  const handleRegisterAsFixedAsset = async () => {
+    if (!numFitoutCost || numFitoutCost <= 0) {
+      alert('يرجى تحديد تكلفة التجهيزات والديكور أولاً');
+      return;
+    }
+    setIsRegisteringAsset(true);
+    setAssetSuccessMsg(null);
+    try {
+      const res = await fetch('/api/assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinicId: clinic.id,
+          assetType: 'DEVICE',
+          name: `تجهيزات وتشطيبات وديكور العيادة - ${clinic.nameAr || clinic.name}`,
+          nameAr: `تجهيزات وديكور العيادة - ${clinic.nameAr || clinic.name}`,
+          category: 'CLINIC_FITOUT',
+          purchasePrice: numFitoutCost,
+          usefulLifeYears: numFitoutYears,
+          notes: `إهلاك تشطيبات ديكور مسترد على ${numFitoutYears} سنوات بقسط شهري ${monthlyFitoutAmortization.toFixed(0)} ج.م (تأثير دقيقة الكرسي: +${fitoutMinuteImpact.toFixed(2)} ج.م)`,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAssetSuccessMsg('✓ تم تسجيل التجهيزات والديكور كأصل ثابت معتمد في قاعدة بيانات العيادة بنجاح!');
+        setTimeout(() => setAssetSuccessMsg(null), 5000);
+      } else {
+        alert(data.error || 'فشل تسجيل الأصل');
+      }
+    } catch (err) {
+      console.error('Error registering asset:', err);
+      alert('حدث خطأ أثناء تسجيل الأصل');
+    } finally {
+      setIsRegisteringAsset(false);
+    }
+  };
 
   const openAddModal = () => {
     setEditingExpense(null);
@@ -240,7 +442,7 @@ export default function ExpensesChairEngineClient({
 
         {/* Operating Capacity Parameters */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-bold text-navy-950 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-sage-600" />
@@ -249,6 +451,24 @@ export default function ExpensesChairEngineClient({
               <p className="text-xs text-slate-500 mt-0.5">
                 تعديل هذه الأرقام يعيد حساب تكلفة الساعة والدقيقة فوراً لكافة خدمات الفرع
               </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {saveSuccessMsg && (
+                <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  {saveSuccessMsg}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleSaveClinicParams}
+                disabled={isSavingClinicParams}
+                className="flex items-center gap-1.5 px-4 py-2 bg-navy-900 hover:bg-navy-950 text-white rounded-lg text-xs font-bold transition-all shadow-xs disabled:opacity-50"
+              >
+                <Save className="w-3.5 h-3.5 text-teal-400" />
+                {isSavingClinicParams ? 'جاري الحفظ...' : 'تثبيت ومزامنة المعايير بالفرع'}
+              </button>
             </div>
           </div>
 
@@ -325,6 +545,311 @@ export default function ExpensesChairEngineClient({
             <span className="text-sage-800 font-bold">
               الساعات الفعالة المحسوبة (بعد استبعاد أوقات الانتظار والتعقيم): <strong className="font-mono text-sm">{effectiveHours.toFixed(1)}</strong> ساعة شهرياً
             </span>
+          </div>
+        </div>
+
+        {/* CLINIC FIT-OUT & DECORATION AMORTIZATION (تجهيزات وتشطيبات وديكور العيادة) */}
+        <div className="bg-gradient-to-r from-amber-50/70 via-white to-orange-50/50 rounded-2xl border border-amber-200/90 p-5 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/60 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-amber-500 text-white shadow-2xs">
+                  <Building2 className="w-4 h-4" />
+                </span>
+                <h3 className="text-sm font-extrabold text-navy-950">
+                  تجهيزات وتشطيبات وديكور العيادة (Clinic Fit-out & Renovation Amortization)
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                  أصل رأسمالي مسترد
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                تجهيز العيادة والديكور هو استثمار تأسيسي ثابت؛ محاسبياً يُهلك على 5 إلى 7 سنوات ليتحمل كل مريض نصيباً ضئيلاً جداً يضمن لك استرداد رأس مالك وتجديد العيادة مستقبلاً.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-2xs">
+              <label className="text-xs font-bold text-navy-950 flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeFitoutInChairRate}
+                  onChange={(e) => handleUpdateFitout(fitoutTotalCost, fitoutYears, e.target.checked)}
+                  className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
+                />
+                <span>ضم إهلاك التجهيزات لساعة الكرسي (موصى به)</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Quick Setup Presets Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-amber-100/50 rounded-xl border border-amber-200/80 text-xs">
+            <span className="text-amber-950 font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              نماذج جاهزة لتقدير التأسيس:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => applyPreset('eco')}
+                className="px-2.5 py-1 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 rounded-lg border border-amber-200 font-medium text-[11px] transition-colors"
+              >
+                تأسيس اقتصادي (كرسي واحد - 180 ألف)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('standard')}
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] shadow-2xs transition-colors"
+              >
+                تأسيس نموذجي (كرسيان - 300 ألف)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('luxury')}
+                className="px-2.5 py-1 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 rounded-lg border border-amber-200 font-medium text-[11px] transition-colors"
+              >
+                مجمع فاخر (3 كراسي - 520 ألف)
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Main Parameter Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="p-3 bg-white rounded-xl border border-amber-200/80 shadow-2xs space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-700 font-semibold mb-1">
+                  إجمالي تكلفة التشطيب والديكور (ج.م):
+                </label>
+              </div>
+              <input
+                type="number"
+                min="0"
+                step="5000"
+                value={fitoutTotalCost}
+                onChange={(e) => handleUpdateFitout(e.target.value, fitoutYears, includeFitoutInChairRate)}
+                placeholder="300000"
+                className="w-full p-2.5 rounded-lg border border-slate-300 font-mono font-bold text-sm bg-slate-50 focus:bg-white text-navy-950"
+              />
+              <span className="text-[10px] text-slate-400 block">سباكة + كهرباء + دهانات + فرش + لافتات</span>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-amber-200/80 shadow-2xs space-y-1">
+              <label className="block text-slate-700 font-semibold mb-1">
+                فترة استرداد وإهلاك الديكور (سنوات):
+              </label>
+              <select
+                value={fitoutYears}
+                onChange={(e) => handleUpdateFitout(fitoutTotalCost, e.target.value, includeFitoutInChairRate)}
+                className="w-full p-2.5 rounded-lg border border-slate-300 font-bold text-xs bg-slate-50 focus:bg-white text-navy-950"
+              >
+                <option value="3">3 سنوات (36 شهراً - استرداد سريع)</option>
+                <option value="5">5 سنوات (60 شهراً - المعيار الذهبي الموصى به)</option>
+                <option value="7">7 سنوات (84 شهراً - تشطيبات فاخرة ومعمرة)</option>
+                <option value="10">10 سنوات (120 شهراً - عقارات ملك)</option>
+              </select>
+              <span className="text-[10px] text-slate-400 block">العرف الطبي المحاسبي: 5 إلى 7 سنوات</span>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-amber-200/80 shadow-2xs space-y-1">
+              <span className="text-slate-500 text-[11px] block">القسط الشهري لإهلاك وتجديد الديكور:</span>
+              <p className="text-lg font-black font-mono text-amber-900 mt-1">
+                {monthlyFitoutAmortization.toFixed(0)} <span className="text-xs font-sans text-slate-600">ج.م / شهر</span>
+              </p>
+              <span className="text-[10px] text-emerald-700 font-medium block">
+                {includeFitoutInChairRate ? '✓ محمل على المصروفات الشهرية' : 'مستبعد من الحسبة حالياً'}
+              </span>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-amber-300/80 shadow-2xs bg-amber-50/40 space-y-1">
+              <span className="text-amber-950 text-[11px] font-bold block">الأثر على تكلفة دقيقة الكرسي:</span>
+              <p className="text-lg font-black font-mono text-amber-900 mt-1">
+                +{fitoutMinuteImpact.toFixed(2)} <span className="text-xs font-sans text-slate-600">ج.م / دقيقة</span>
+              </p>
+              <span className="text-[10px] text-slate-600 block">
+                جلسة الكومبوزيت (35 دقيقة) = +{(fitoutMinuteImpact * 35).toFixed(1)} ج.م فقط!
+              </span>
+            </div>
+          </div>
+
+          {/* Itemized Breakdown Collapsible Accordion */}
+          <div className="bg-white/80 rounded-xl border border-amber-200/80 p-3.5 space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowBreakdown(!showBreakdown)}
+              className="w-full flex items-center justify-between text-xs font-bold text-navy-950 hover:text-amber-900 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Paintbrush className="w-4 h-4 text-amber-600" />
+                <span>تفصيل بنود التشطيب والتجهيز التأسيسي (Dental Fit-out Infrastructure Breakdown)</span>
+                <span className="text-[10px] font-normal text-slate-500">
+                  (اضغط {showBreakdown ? 'لإخفاء' : 'لفتح'} تفاصيل السباكة والكهرباء والتهوية والفرش)
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-slate-500">
+                {showBreakdown ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
+            </button>
+
+            {showBreakdown && (
+              <div className="pt-3 border-t border-amber-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs animate-in fade-in duration-150">
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                  <label className="block text-slate-700 font-semibold text-[11px]">
+                    1. السباكة وشبكة الهواء والشفاط الطبي:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={fitoutItems.plumbing}
+                    onChange={(e) => handleItemChange('plumbing', e.target.value)}
+                    className="w-full p-1.5 rounded border border-slate-300 font-mono font-bold text-xs bg-white text-navy-950"
+                  />
+                  <span className="text-[10px] text-slate-400 block">مواسير ضغط هواء + تصريف معقم للكراسي</span>
+                </div>
+
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                  <label className="block text-slate-700 font-semibold text-[11px]">
+                    2. التجهيزات الكهربائية ولوحات الحماية:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={fitoutItems.electrical}
+                    onChange={(e) => handleItemChange('electrical', e.target.value)}
+                    className="w-full p-1.5 rounded border border-slate-300 font-mono font-bold text-xs bg-white text-navy-950"
+                  />
+                  <span className="text-[10px] text-slate-400 block">كابلات معزولة + إنارة LED عيادية + لوحات قواطع</span>
+                </div>
+
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                  <label className="block text-slate-700 font-semibold text-[11px]">
+                    3. التكييفات وشبكة التهوية (HVAC):
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={fitoutItems.hvac}
+                    onChange={(e) => handleItemChange('hvac', e.target.value)}
+                    className="w-full p-1.5 rounded border border-slate-300 font-mono font-bold text-xs bg-white text-navy-950"
+                  />
+                  <span className="text-[10px] text-slate-400 block">تكييفات غرف العمليات وصالة الانتظار</span>
+                </div>
+
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                  <label className="block text-slate-700 font-semibold text-[11px]">
+                    4. الأرضيات والدهانات المقاومة للبكتيريا:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={fitoutItems.finishes}
+                    onChange={(e) => handleItemChange('finishes', e.target.value)}
+                    className="w-full p-1.5 rounded border border-slate-300 font-mono font-bold text-xs bg-white text-navy-950"
+                  />
+                  <span className="text-[10px] text-slate-400 block">فينيل طبي أو بورسلين معالج + دهانات معقمة</span>
+                </div>
+
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                  <label className="block text-slate-700 font-semibold text-[11px]">
+                    5. أثاث الاستقبال والانتظار والمكتب:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={fitoutItems.furniture}
+                    onChange={(e) => handleItemChange('furniture', e.target.value)}
+                    className="w-full p-1.5 rounded border border-slate-300 font-mono font-bold text-xs bg-white text-navy-950"
+                  />
+                  <span className="text-[10px] text-slate-400 block">كاونتر استقبال + كراسي انتظار طبية + مكتب استشارة</span>
+                </div>
+
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                  <label className="block text-slate-700 font-semibold text-[11px]">
+                    6. الواجهة الخارجية واللافتات والباب الزجاجي:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={fitoutItems.facadeSignage}
+                    onChange={(e) => handleItemChange('facadeSignage', e.target.value)}
+                    className="w-full p-1.5 rounded border border-slate-300 font-mono font-bold text-xs bg-white text-navy-950"
+                  />
+                  <span className="text-[10px] text-slate-400 block">لافتة مضيئة + كلادينج + باب سيكوريت عازل</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Procedure Absorption & Payback Matrix */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs">
+            {/* Impact on Real Procedures */}
+            <div className="lg:col-span-2 bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs space-y-2">
+              <span className="text-slate-700 font-bold flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+                نصيب كل إجراء سريري من إهلاك وتجديد الديكور (حسب مدة الجلسة):
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-100 text-center">
+                  <span className="text-[10px] text-slate-500 block">فحص واستشارة (15 د)</span>
+                  <span className="font-mono font-bold text-amber-900 text-xs mt-0.5 block">
+                    +{(fitoutMinuteImpact * 15).toFixed(1)} ج.م
+                  </span>
+                </div>
+                <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-100 text-center">
+                  <span className="text-[10px] text-slate-500 block">حشو كمبوزيت (35 د)</span>
+                  <span className="font-mono font-bold text-amber-900 text-xs mt-0.5 block">
+                    +{(fitoutMinuteImpact * 35).toFixed(1)} ج.م
+                  </span>
+                </div>
+                <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-100 text-center">
+                  <span className="text-[10px] text-slate-500 block">تحضير فينير/تاج (60 د)</span>
+                  <span className="font-mono font-bold text-amber-900 text-xs mt-0.5 block">
+                    +{(fitoutMinuteImpact * 60).toFixed(1)} ج.م
+                  </span>
+                </div>
+                <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-100 text-center">
+                  <span className="text-[10px] text-slate-500 block">علاج عصب متبدل (90 د)</span>
+                  <span className="font-mono font-bold text-amber-900 text-xs mt-0.5 block">
+                    +{(fitoutMinuteImpact * 90).toFixed(1)} ج.م
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Fixed Asset Sync & Payback Action */}
+            <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs flex flex-col justify-between gap-2.5">
+              <div>
+                <span className="text-slate-700 font-bold flex items-center gap-1.5 text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  التوثيق بسجل الأصول الثابتة:
+                </span>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  تسجيل تكلفة الديكور كأصل ثابت معتمد بقاعدة البيانات لحساب الإهلاك المحاسبي في تقارير المركز والميزانية.
+                </p>
+              </div>
+
+              <div>
+                {assetSuccessMsg && (
+                  <div className="mb-2 p-1.5 bg-emerald-50 border border-emerald-200 rounded text-[11px] font-bold text-emerald-800 flex items-center gap-1 animate-in fade-in">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>{assetSuccessMsg}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleRegisterAsFixedAsset}
+                  disabled={isRegisteringAsset}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs disabled:opacity-50"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  {isRegisteringAsset ? 'جاري التسجيل...' : 'تسجيل كأصل ثابت بسجل المركز'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
