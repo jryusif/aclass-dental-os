@@ -12,48 +12,29 @@ export const metadata: Metadata = {
     'مركز القاهرة لطب وجراحة وتجميل الأسنان - فرع كوم امبو وفرع نصر النوبة - د. محمد يوسف الحداد',
 };
 
-export default async function RootLayout({
+const DEFAULT_CLINICS = [
+  {
+    id: '6e3140d3-9455-408b-9248-626b5ae68b44',
+    name: 'Cairo Dental Center - Kom Ombo',
+    nameAr: 'كايرو دينتال سنتر - فرع كوم امبو',
+    code: 'CDC-KOMOMBO',
+    location: 'كوم امبو - أسوان',
+  },
+  {
+    id: '293c03d5-0fa8-4d79-ba9d-65ef6dcf4289',
+    name: 'Cairo Dental Center - Nasr Al-Nuba',
+    nameAr: 'كايرو دينتال سنتر - فرع نصر النوبة',
+    code: 'CDC-NASRNUBA',
+    location: 'نصر النوبة - أسوان',
+  },
+];
+
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let clinics: any[] = [];
-
-  try {
-    if (process.env.DATABASE_URL) {
-      clinics = await prisma.clinic.findMany({
-        select: {
-          id: true,
-          name: true,
-          nameAr: true,
-          code: true,
-          location: true,
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-    }
-  } catch (err) {
-    console.warn('Prisma DB not reachable during build/prerender; using fallback clinic.');
-  }
-
-  if (!clinics || clinics.length === 0) {
-    clinics = [
-      {
-        id: '6e3140d3-9455-408b-9248-626b5ae68b44',
-        name: 'Cairo Dental Center - Kom Ombo',
-        nameAr: 'كايرو دينتال سنتر - فرع كوم امبو',
-        code: 'CDC-KOMOMBO',
-        location: 'كوم امبو - أسوان',
-      },
-      {
-        id: '293c03d5-0fa8-4d79-ba9d-65ef6dcf4289',
-        name: 'Cairo Dental Center - Nasr Al-Nuba',
-        nameAr: 'كايرو دينتال سنتر - فرع نصر النوبة',
-        code: 'CDC-NASRNUBA',
-        location: 'نصر النوبة - أسوان',
-      },
-    ];
-  }
+  const clinics = DEFAULT_CLINICS;
 
   return (
     <html lang="ar" dir="rtl">
