@@ -80,10 +80,11 @@ export default function Sidebar() {
                 const newId = e.target.value;
                 setCurrentClinicId(newId);
                 if (typeof window !== 'undefined') {
-                  document.cookie = `clinicId=${newId}; path=/; max-age=31536000`;
+                  document.cookie = `clinicId=${newId}; path=/; max-age=31536000; SameSite=Lax`;
+                  localStorage.setItem('dental_os_active_clinic_id', newId);
                   const url = new URL(window.location.href);
                   url.searchParams.set('clinicId', newId);
-                  window.location.href = url.toString();
+                  window.location.href = url.pathname + '?clinicId=' + newId;
                 }
               }}
               className="w-full bg-navy-850 hover:bg-navy-800 border border-navy-700 rounded-md py-1.5 px-2.5 text-xs text-white appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-sage-500 cursor-pointer"
@@ -108,10 +109,11 @@ export default function Sidebar() {
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
+          const clinicQuery = currentClinicId ? `?clinicId=${currentClinicId}` : '';
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={`${item.href}${clinicQuery}`}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                 isActive
                   ? 'bg-sage-600/20 text-sage-300 border border-sage-500/30 shadow-sm font-semibold'

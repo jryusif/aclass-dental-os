@@ -43,6 +43,28 @@ export function AppProvider({
   const isRtl = locale === 'ar';
 
   useEffect(() => {
+    if (initialClinicId) {
+      setCurrentClinicId(initialClinicId);
+    }
+  }, [initialClinicId]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlClinic = urlParams.get('clinicId');
+      if (urlClinic) {
+        setCurrentClinicId(urlClinic);
+        document.cookie = `clinicId=${urlClinic}; path=/; max-age=31536000; SameSite=Lax`;
+        return;
+      }
+      const cookieMatch = document.cookie.match(/(?:^|; )clinicId=([^;]*)/);
+      if (cookieMatch && cookieMatch[1]) {
+        setCurrentClinicId(cookieMatch[1]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
     document.documentElement.lang = locale;
   }, [isRtl, locale]);

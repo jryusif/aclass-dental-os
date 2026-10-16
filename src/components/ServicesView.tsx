@@ -43,11 +43,18 @@ export default function ServicesView({
   presetRecipes = [],
   clinicId,
 }: ServicesViewProps) {
-  const { t } = useApp();
+  const { t, currentClinicId, setCurrentClinicId } = useApp();
   const [services, setServices] = useState(initialServices);
   const [materialsList, setMaterialsList] = useState(materials);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+
+  // Sync client context with server-rendered active clinic
+  React.useEffect(() => {
+    if (clinic?.id && clinic.id !== currentClinicId) {
+      setCurrentClinicId(clinic.id);
+    }
+  }, [clinic?.id, currentClinicId, setCurrentClinicId]);
 
   // Load custom materials saved locally across tabs so they immediately appear in dropdowns
   React.useEffect(() => {

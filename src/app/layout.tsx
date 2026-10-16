@@ -3,6 +3,7 @@ import './globals.css';
 import { prisma } from '@/lib/prisma';
 import { AppProvider } from '@/context/AppContext';
 import Sidebar from '@/components/Sidebar';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const clinics = DEFAULT_CLINICS;
+  let activeClinicId = clinics[0]?.id;
+
+  try {
+    const cookieStore = cookies();
+    const cookieId = cookieStore.get('clinicId')?.value;
+    if (cookieId && clinics.some((c) => c.id === cookieId)) {
+      activeClinicId = cookieId;
+    }
+  } catch (e) {
+    // fallback
+  }
 
   return (
     <html lang="ar" dir="rtl">
@@ -47,7 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-slate-50 text-slate-900 antialiased">
-        <AppProvider initialClinics={clinics} initialClinicId={clinics[0]?.id}>
+        <AppProvider initialClinics={clinics} initialClinicId={activeClinicId}>
           <div className="flex min-h-screen">
             <Sidebar />
             <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-y-auto">

@@ -20,6 +20,8 @@ import {
   Info,
 } from 'lucide-react';
 
+import { useApp } from '@/context/AppContext';
+
 interface DashboardClientProps {
   initialData: any;
   materials: any[];
@@ -35,8 +37,16 @@ export default function DashboardClient({
   services,
 }: DashboardClientProps) {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const { currentClinicId, setCurrentClinicId, clinics } = useApp();
 
   const { chairMetrics, clinic } = initialData;
+
+  // Sync client context with server-rendered active clinic
+  React.useEffect(() => {
+    if (clinic?.id && clinic.id !== currentClinicId) {
+      setCurrentClinicId(clinic.id);
+    }
+  }, [clinic?.id, currentClinicId, setCurrentClinicId]);
 
   // Chair metrics
   const chairHourCost = chairMetrics?.chairHourCost || 153.8;
@@ -49,6 +59,15 @@ export default function DashboardClient({
 
   // Active Branch Name
   const branchName = clinic?.nameAr || clinic?.name || 'فرع كوم امبو';
+  const otherClinic = clinics.find((c) => c.id !== clinic?.id);
+
+  const handleSwitchBranch = (targetId: string) => {
+    if (typeof window !== 'undefined') {
+      document.cookie = `clinicId=${targetId}; path=/; max-age=31536000; SameSite=Lax`;
+      localStorage.setItem('dental_os_active_clinic_id', targetId);
+      window.location.href = `/?clinicId=${targetId}`;
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col">
@@ -61,13 +80,24 @@ export default function DashboardClient({
         {/* Branch Context Banner & Quick Actions */}
         <div className="bg-gradient-to-l from-navy-900 via-navy-850 to-teal-950 text-white rounded-2xl p-6 shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-500/20 text-teal-300 border border-teal-400/30">
                 الفرع النشط حالياً
               </span>
               <span className="text-xs text-slate-300">
                 {clinic?.location || 'كوم امبو - أسوان'}
               </span>
+              {otherClinic && (
+                <button
+                  type="button"
+                  onClick={() => handleSwitchBranch(otherClinic.id)}
+                  className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="التبديل إلى الفرع الآخر فوراً"
+                >
+                  <Building2 className="w-3 h-3 text-amber-300" />
+                  <span>التبديل إلى: {otherClinic.nameAr || otherClinic.name} ⬅️</span>
+                </button>
+              )}
             </div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Building2 className="w-5 h-5 text-amber-400" />

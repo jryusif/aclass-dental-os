@@ -15,7 +15,15 @@ export async function getActiveClinic(searchParams?: { clinicId?: string } | Rec
       if (clinic) return clinic;
     }
 
-    return await prisma.clinic.findFirst();
+    // Default deterministically to Kom Ombo (CDC-KOMOMBO) first
+    const defaultClinic = await prisma.clinic.findFirst({
+      where: { code: 'CDC-KOMOMBO' },
+    });
+    if (defaultClinic) return defaultClinic;
+
+    return await prisma.clinic.findFirst({
+      orderBy: { createdAt: 'asc' },
+    });
   } catch (error) {
     console.warn('Could not retrieve active clinic from database:', error);
     return null;
