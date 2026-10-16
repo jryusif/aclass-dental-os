@@ -9,14 +9,19 @@ interface PricingCalculatorModalProps {
   isOpen: boolean;
   onClose: () => void;
   chairMinuteCost?: number;
+  chairHourCost?: number;
+  materials?: any[];
 }
 
 export default function PricingCalculatorModal({
   isOpen,
   onClose,
-  chairMinuteCost = 1.717,
+  chairMinuteCost: propMinuteCost,
+  chairHourCost,
+  materials = [],
 }: PricingCalculatorModalProps) {
   const { t } = useApp();
+  const chairMinuteCost = chairHourCost ? chairHourCost / 60 : (propMinuteCost || 1.717);
 
   const [directMaterialCost, setDirectMaterialCost] = useState(153.5);
   const [reusableInstrumentCost, setReusableInstrumentCost] = useState(25.0);

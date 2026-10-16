@@ -2,7 +2,6 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import ServicesView from '@/components/ServicesView';
 import DbNotice from '@/components/DbNotice';
-
 import { getActiveClinic } from '@/lib/get-active-clinic';
 
 export const dynamic = 'force-dynamic';
@@ -34,9 +33,19 @@ export default async function ServicesPage({
       orderBy: { category: 'asc' },
     });
 
+    const materials = await prisma.material.findMany({
+      where: { OR: [{ clinicId: clinic.id }, { clinicId: null }] },
+      orderBy: { name: 'asc' },
+    });
+
     return (
       <div className="flex-1 flex flex-col">
-        <ServicesView services={services} clinicId={clinic.id} />
+        <ServicesView
+          services={JSON.parse(JSON.stringify(services))}
+          clinic={JSON.parse(JSON.stringify(clinic))}
+          materials={JSON.parse(JSON.stringify(materials))}
+          clinicId={clinic.id}
+        />
       </div>
     );
   } catch (error) {

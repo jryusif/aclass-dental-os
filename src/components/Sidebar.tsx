@@ -32,23 +32,15 @@ export default function Sidebar() {
   const { t, locale, setLocale, clinics, currentClinicId, setCurrentClinicId } = useApp();
 
   const navItems = [
-    { href: '/', label: t.nav.dashboard, icon: LayoutDashboard },
-    { href: '/patients', label: t.nav.patients, icon: Users },
-    { href: '/services', label: t.nav.services, icon: Stethoscope },
-    { href: '/materials', label: t.nav.materials, icon: FlaskConical },
-    { href: '/inventory', label: t.nav.inventory, icon: Boxes },
-    { href: '/consumption', label: t.nav.consumption, icon: Calculator },
-    { href: '/purchases', label: t.nav.purchases, icon: Truck },
-    { href: '/doctors', label: t.nav.doctors, icon: UserCheck },
-    { href: '/labs', label: t.nav.dentalLab, icon: Building2 },
-    { href: '/expenses', label: t.nav.expenses, icon: Wallet },
-    { href: '/invoices', label: t.nav.invoices, icon: Receipt },
-    { href: '/simulator', label: t.nav.simulator, icon: TrendingUp },
-    { href: '/price-versions', label: t.nav.priceVersions, icon: GitCompare },
-    { href: '/assets', label: t.nav.fixedAssets, icon: Wrench },
-    { href: '/benchmarks', label: t.nav.benchmarks, icon: Target },
-    { href: '/reports', label: t.nav.reports, icon: BarChart3 },
-    { href: '/settings', label: t.nav.settings, icon: Settings },
+    { href: '/', label: 'لوحة حسابات التكاليف وساعة التشغيل', icon: LayoutDashboard },
+    { href: '/services', label: 'دليل الخدمات وحساب التسعير', icon: Stethoscope },
+    { href: '/materials', label: 'مكتبة الخامات والمستهلكات والأحجام', icon: FlaskConical },
+    { href: '/consumption', label: 'حاسبة استهلاك الخامات بالجرام والقطرة', icon: Calculator },
+    { href: '/expenses', label: 'المرتبات والمصروفات وساعة الكرسي', icon: Wallet },
+    { href: '/assets', label: 'الأجهزة وسجل إهلاك الأصول', icon: Wrench },
+    { href: '/simulator', label: 'محاكي التسعير وماذا لو', icon: TrendingUp },
+    { href: '/benchmarks', label: 'أسعار السوق القياسية', icon: Target },
+    { href: '/settings', label: 'إعدادات الفروع ودليل النسب', icon: Settings },
   ];
 
   const currentClinic = clinics.find((c) => c.id === currentClinicId) || clinics[0];
