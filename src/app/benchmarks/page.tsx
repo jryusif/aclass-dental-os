@@ -3,16 +3,22 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Target, TrendingUp, Info, MapPin } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function BenchmarksPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const benchmarks = await prisma.marketBenchmark.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { specialty: 'asc' },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    const benchmarks = await prisma.marketBenchmark.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { specialty: 'asc' },
+    });
 
   return (
     <div className="flex-1 flex flex-col">
@@ -85,4 +91,9 @@ export default async function BenchmarksPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Benchmarks page error:', error);
+  return <DbNotice />;
 }
+}
+

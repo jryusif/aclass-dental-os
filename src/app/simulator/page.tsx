@@ -1,38 +1,47 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import WhatIfSimulatorView from '@/components/WhatIfSimulatorView';
+import DbNotice from '@/components/DbNotice';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SimulatorPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const services = await prisma.serviceCatalog.findMany({
-    where: { clinicId: clinic.id },
-    include: {
-      recipes: {
-        include: {
-          items: {
-            include: { material: true },
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    const services = await prisma.serviceCatalog.findMany({
+      where: { clinicId: clinic.id },
+      include: {
+        recipes: {
+          include: {
+            items: {
+              include: { material: true },
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  const savedScenarios = await prisma.whatIfScenario.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { createdAt: 'desc' },
-  });
+    const savedScenarios = await prisma.whatIfScenario.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  return (
-    <div className="flex-1 flex flex-col">
-      <WhatIfSimulatorView
-        clinic={clinic}
-        services={services}
-        savedScenarios={savedScenarios}
-      />
-    </div>
-  );
+    return (
+      <div className="flex-1 flex flex-col">
+        <WhatIfSimulatorView
+          clinic={clinic}
+          services={services}
+          savedScenarios={savedScenarios}
+        />
+      </div>
+    );
+  } catch (error) {
+    console.error('Error loading simulator:', error);
+    return <DbNotice />;
+  }
 }

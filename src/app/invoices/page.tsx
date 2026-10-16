@@ -3,17 +3,23 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Receipt, DollarSign, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function InvoicesPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const invoices = await prisma.patientInvoice.findMany({
-    where: { clinicId: clinic.id },
-    include: { patient: true, payments: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    const invoices = await prisma.patientInvoice.findMany({
+      where: { clinicId: clinic.id },
+      include: { patient: true, payments: true },
+      orderBy: { createdAt: 'desc' },
+    });
 
   const totalInvoiced = invoices.reduce((acc, inv) => acc + (inv.totalAmount || 0), 0);
   const totalCollected = invoices.reduce((acc, inv) => acc + (inv.paidAmount || 0), 0);
@@ -108,4 +114,9 @@ export default async function InvoicesPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Invoices page error:', error);
+  return <DbNotice />;
 }
+}
+

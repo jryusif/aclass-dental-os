@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { AppProvider } from '@/context/AppContext';
 import Sidebar from '@/components/Sidebar';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'A-Class Dental OS | Every Material. Every Case. Every Pound.',
   description:
@@ -15,16 +17,36 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const clinics = await prisma.clinic.findMany({
-    select: {
-      id: true,
-      name: true,
-      nameAr: true,
-      code: true,
-      location: true,
-    },
-    orderBy: { createdAt: 'asc' },
-  });
+  let clinics: any[] = [];
+
+  try {
+    if (process.env.DATABASE_URL) {
+      clinics = await prisma.clinic.findMany({
+        select: {
+          id: true,
+          name: true,
+          nameAr: true,
+          code: true,
+          location: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+  } catch (err) {
+    console.warn('Prisma DB not reachable during build/prerender; using fallback clinic.');
+  }
+
+  if (!clinics || clinics.length === 0) {
+    clinics = [
+      {
+        id: '6e3140d3-9455-408b-9248-626b5ae68b44',
+        name: 'A-Class Dental Clinic',
+        nameAr: 'عيادة إيه كلاس لطب وجراحة وتجميل الأسنان',
+        code: 'ACLASS-ASWAN',
+        location: 'Kom Ombo / Aswan, Egypt',
+      },
+    ];
+  }
 
   return (
     <html lang="ar" dir="rtl">

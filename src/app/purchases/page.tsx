@@ -3,21 +3,27 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Truck, Package, Clock, ShieldCheck } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function PurchasesPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const suppliers = await prisma.supplier.findMany({
-    where: { clinicId: clinic.id },
-    include: {
-      purchaseOrders: {
-        include: { items: { include: { material: true } } },
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    const suppliers = await prisma.supplier.findMany({
+      where: { clinicId: clinic.id },
+      include: {
+        purchaseOrders: {
+          include: { items: { include: { material: true } } },
+        },
       },
-    },
-    orderBy: { name: 'asc' },
-  });
+      orderBy: { name: 'asc' },
+    });
 
   return (
     <div className="flex-1 flex flex-col">
@@ -88,4 +94,9 @@ export default async function PurchasesPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Purchases page error:', error);
+  return <DbNotice />;
 }
+}
+

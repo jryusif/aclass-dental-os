@@ -3,16 +3,22 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Building2, Package, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function LabsPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const labs = await prisma.dentalLab.findMany({
-    where: { clinicId: clinic.id },
-    include: { labOrders: { include: { patient: true } } },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    const labs = await prisma.dentalLab.findMany({
+      where: { clinicId: clinic.id },
+      include: { labOrders: { include: { patient: true } } },
+    });
 
   return (
     <div className="flex-1 flex flex-col">
@@ -76,4 +82,9 @@ export default async function LabsPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Labs page error:', error);
+  return <DbNotice />;
 }
+}
+

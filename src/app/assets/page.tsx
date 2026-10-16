@@ -3,21 +3,27 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Wrench, ShieldAlert, CheckCircle, Clock, RotateCcw } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function AssetsPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const assets = await prisma.fixedAsset.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { purchaseDate: 'asc' },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
 
-  const instruments = await prisma.reusableInstrument.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { expectedLifetimeUses: 'asc' },
-  });
+    const assets = await prisma.fixedAsset.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { purchaseDate: 'asc' },
+    });
+
+    const instruments = await prisma.reusableInstrument.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { expectedLifetimeUses: 'asc' },
+    });
 
   const totalHistoricalCost = assets.reduce((acc, a) => acc + (a.historicalCost || 0), 0);
   const totalAccumulatedDepreciation = assets.reduce((acc, a) => acc + (a.accumulatedDepreciation || 0), 0);
@@ -177,4 +183,9 @@ export default async function AssetsPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Assets page error:', error);
+  return <DbNotice />;
 }
+}
+

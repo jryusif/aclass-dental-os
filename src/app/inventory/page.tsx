@@ -3,24 +3,30 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Boxes, Clock, ArrowDownRight, ArrowUpRight, ShieldCheck, History } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function InventoryPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const lots = await prisma.materialLot.findMany({
-    where: { clinicId: clinic.id },
-    include: { material: true, supplier: true },
-    orderBy: { expiryDate: 'asc' }, // FEFO order
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
 
-  const movements = await prisma.stockMovement.findMany({
-    where: { clinicId: clinic.id },
-    include: { material: true, lot: true, procedure: true },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
+    const lots = await prisma.materialLot.findMany({
+      where: { clinicId: clinic.id },
+      include: { material: true, supplier: true },
+      orderBy: { expiryDate: 'asc' }, // FEFO order
+    });
+
+    const movements = await prisma.stockMovement.findMany({
+      where: { clinicId: clinic.id },
+      include: { material: true, lot: true, procedure: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
 
   const totalValuation = lots.reduce((acc, l) => acc + (l.currentStockBaseUnits * l.unitCostBaseUnit), 0);
 
@@ -183,4 +189,9 @@ export default async function InventoryPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Inventory page error:', error);
+  return <DbNotice />;
 }
+}
+

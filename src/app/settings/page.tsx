@@ -3,23 +3,39 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Settings, Shield, Clock, Database, Users, Key, AlertTriangle } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SettingsPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const users = await prisma.user.findMany({
-    where: { clinicId: clinic.id },
-    select: { id: true, name: true, email: true, role: true, phone: true, active: true },
-    orderBy: { role: 'asc' },
-  });
+  let clinic: any = null;
+  let users: any[] = [];
+  let auditLogs: any[] = [];
 
-  const auditLogs = await prisma.auditLog.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  });
+  try {
+    clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    users = await prisma.user.findMany({
+      where: { clinicId: clinic.id },
+      select: { id: true, name: true, email: true, role: true, phone: true, active: true },
+      orderBy: { role: 'asc' },
+    });
+
+    auditLogs = await prisma.auditLog.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  } catch (error) {
+    console.error('Settings page error:', error);
+    return <DbNotice />;
+  }
+
+
 
   return (
     <div className="flex-1 flex flex-col">

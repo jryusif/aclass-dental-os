@@ -3,22 +3,28 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { Wallet, DollarSign, ArrowDownLeft, ShieldCheck, Tag } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function ExpensesPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const expenses = await prisma.expense.findMany({
-    where: { clinicId: clinic.id },
-    include: { financialAccount: true },
-    orderBy: { expenseDate: 'desc' },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
 
-  const accounts = await prisma.financialAccount.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { code: 'asc' },
-  });
+    const expenses = await prisma.expense.findMany({
+      where: { clinicId: clinic.id },
+      include: { financialAccount: true },
+      orderBy: { expenseDate: 'desc' },
+    });
+
+    const accounts = await prisma.financialAccount.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { code: 'asc' },
+    });
 
   const totalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
   const totalCashBalance = accounts.reduce((acc, a) => acc + (a.currentBalance || 0), 0);
@@ -101,4 +107,9 @@ export default async function ExpensesPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Expenses page error:', error);
+  return <DbNotice />;
 }
+}
+

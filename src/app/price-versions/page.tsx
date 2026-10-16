@@ -1,21 +1,30 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import PriceVersionsView from '@/components/PriceVersionsView';
+import DbNotice from '@/components/DbNotice';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function PriceVersionsPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const versions = await prisma.priceListVersion.findMany({
-    where: { clinicId: clinic.id },
-    orderBy: { effectiveDate: 'desc' },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
 
-  return (
-    <div className="flex-1 flex flex-col">
-      <PriceVersionsView versions={versions} clinicId={clinic.id} />
-    </div>
-  );
+    const versions = await prisma.priceListVersion.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { effectiveDate: 'desc' },
+    });
+
+    return (
+      <div className="flex-1 flex flex-col">
+        <PriceVersionsView versions={versions} clinicId={clinic.id} />
+      </div>
+    );
+  } catch (error) {
+    console.error('Price versions page error:', error);
+    return <DbNotice />;
+  }
 }

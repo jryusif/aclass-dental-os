@@ -3,20 +3,26 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
 import { UserCheck, Award, Percent, DollarSign } from 'lucide-react';
 
+import DbNotice from '@/components/DbNotice';
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function DoctorsPage() {
-  const clinic = await prisma.clinic.findFirst();
-  if (!clinic) return null;
+  if (!process.env.DATABASE_URL) return <DbNotice />;
 
-  const doctors = await prisma.doctor.findMany({
-    where: { clinicId: clinic.id },
-    include: {
-      procedures: { where: { status: 'COMPLETED' } },
-      compensationRules: true,
-    },
-    orderBy: { createdAt: 'asc' },
-  });
+  try {
+    const clinic = await prisma.clinic.findFirst();
+    if (!clinic) return <DbNotice />;
+
+    const doctors = await prisma.doctor.findMany({
+      where: { clinicId: clinic.id },
+      include: {
+        procedures: { where: { status: 'COMPLETED' } },
+        compensationRules: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
   return (
     <div className="flex-1 flex flex-col">
@@ -82,4 +88,9 @@ export default async function DoctorsPage() {
       </div>
     </div>
   );
+} catch (error) {
+  console.error('Doctors page error:', error);
+  return <DbNotice />;
 }
+}
+
