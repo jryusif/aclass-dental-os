@@ -1,0 +1,6 @@
+SKU,Name_EN,Name_AR,Brand,Manufacturer,Category,Package_Unit,Package_Qty,Base_Unit,Conversion_Factor,Unusable_Waste_Pct,Package_Price_EGP,Reorder_Threshold,Evidence_Level,Notes
+MAT-SEB2-KIT,Clearfil SE Bond 2 Kit,نظام الربط الحيوي سيليرفيل SE Bond 2,Clearfil,Kuraray Noritake,ADHESIVES,KIT,1,ML,11,4.0,2400,2,MANUFACTURER,Gold Standard 2-step self-etch adhesive
+MAT-MAJ-POST,Clearfil Majesty Posterior Syringe,كمبوزيت ماجيستي خلفي عالي الكثافة A2,Clearfil Majesty,Kuraray Noritake,COMPOSITES,SYRINGE,1,G,4.9,6.0,1200,3,MEASURED_CLINIC,Nano-superfilled composite 92wt%
+MAT-EVERX-FLOW,GC EverX Flow Dentin,كمبوزيت مقوى بالألياف الزجاجية إيفر إكس فلو,EverX,GC Corporation,BIOMIMETIC_FIBERS,SYRINGE,1,G,3.7,5.0,1450,2,PUBLISHED_EVIDENCE,Short glass fiber reinforcement
+MAT-RIBBOND-THM,Ribbond THM 2mm High-Modulus Fiber,أشرطة ريبوند الأمريكية المقواة بعرض 2 مم,Ribbond,Ribbond Inc.,BIOMIMETIC_FIBERS,ROLL,1,MM,220,8.0,2200,1,PUBLISHED_EVIDENCE,Cross-link lock-stitch weave
+MAT-BIOC-SEAL,Bio-C Sealer Bioceramic Root Canal Sealer,سيلر بيوسيراميك حيوي لعلاج الجذور,Bio-C,Angelus,ENDODONTICS,SYRINGE,1,G,2.0,5.0,2100,1,MANUFACTURER,Premixed bioceramic injectable sealer

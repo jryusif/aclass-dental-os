@@ -1,0 +1,5 @@
+Code,Name_EN,Name_AR,Specialty,Category,Standard_Price_EGP,Duration_Minutes,Chair_Time_Minutes,Description
+SRV-BIO-CL2,Biomimetic Class II Restoration (Medium),حشوة حيوية صنف ثاني خلفية - متوسطة,Biomimetic Dentistry,Direct Restorations,1850,50,50,Immediate dentin sealing with SE Bond 2 and Majesty Posterior
+SRV-BIO-CUSP,Biomimetic Cusp Replacement with Fiber,إعادة بناء حدبة حيوية مدعمة بألياف ريبوند,Biomimetic Dentistry,Biomimetic Restorations,2850,75,75,Fiber mesh reinforcement (Ribbond + EverX Flow)
+SRV-ENDO-MOL,Molar Root Canal Treatment (Bioceramic),علاج جذور ضرس متقدم (سيلر بيوسيراميك),Endodontics,Endodontics,2600,80,80,Rotary shaping and Bio-C sealer single-cone obturation
+SRV-IND-OVERLAY,Biomimetic Ceramic Overlay (E.max),أوفرلاي سيراميك إيماكس تجميلي,Prosthodontics,Indirect Restorations,4500,60,60,IDS and rubber dam adhesive cementation

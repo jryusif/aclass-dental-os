@@ -1,0 +1,903 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// Enums
+// ----------------------------------------------------
+
+enum UserRole {
+  OWNER
+  MANAGER
+  DOCTOR
+  RECEPTIONIST
+  INVENTORY_MGR
+  ACCOUNTANT
+}
+
+enum DoctorCompensationModel {
+  PERCENT_COLLECTED
+  PERCENT_BILLED
+  PERCENT_NET_AFTER_LAB
+  PERCENT_NET_AFTER_LAB_MATERIALS
+  FIXED_PER_PROCEDURE
+  SALARY
+  SALARY_PLUS_COMMISSION
+}
+
+enum MaterialCategory {
+  ADHESIVES
+  COMPOSITES
+  BIOMIMETIC_FIBERS
+  ENDODONTICS
+  BURS_POLISHING
+  ISOLATION
+  ANESTHETICS
+  CONSUMABLES
+  IMPLANT
+  LAB_SUPPLIES
+  PREVENTIVE
+}
+
+enum PackageUnit {
+  BOTTLE
+  SYRINGE
+  BOX
+  ROLL
+  PACK
+  KIT
+  CARTRIDGE
+  VIAL
+}
+
+enum BaseUnit {
+  ML
+  G
+  MG
+  MM
+  PIECE
+  APPLICATION
+  DOSE
+}
+
+enum EvidenceLevel {
+  MANUFACTURER
+  PUBLISHED_EVIDENCE
+  MEASURED_CLINIC
+  DENTIST_ESTIMATE
+  TEMPORARY_DEFAULT
+}
+
+enum LotStatus {
+  ACTIVE
+  DEPLETED
+  EXPIRED
+  QUARANTINED
+}
+
+enum StockMovementType {
+  PURCHASE_RECEIPT
+  PROCEDURE_CONSUMED
+  PATIENT_RETURN
+  SUPPLIER_RETURN
+  DAMAGED_WRITE_OFF
+  EXPIRED_WRITE_OFF
+  AUDIT_CORRECTION
+  ROOM_TRANSFER
+  SAMPLE_INTERNAL
+}
+
+enum RestorationType {
+  SMALL_POSTERIOR
+  MEDIUM_POSTERIOR
+  LARGE_POSTERIOR
+  CLASS_IV
+  CUSP_REPLACEMENT
+  OVERLAY
+  VENEER
+  ENDO_ANTERIOR
+  ENDO_PREMOLAR
+  ENDO_MOLAR
+  CROWN_CEMENTATION
+  RUBBER_DAM_ISOLATION
+  CORE_BUILDUP
+  GENERAL
+}
+
+enum ProcedureStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  PARTIALLY_RECEIVED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  REFUNDED
+}
+
+enum LabOrderStatus {
+  SENT
+  IN_PROGRESS
+  DELIVERED
+  REMAKE
+  CANCELLED
+}
+
+enum FinancialAccountType {
+  CASH_DRAWER
+  BANK
+  ELECTRONIC_WALLET
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+  VODAFONE_CASH
+  INSTAPAY
+}
+
+enum ExpenseCategory {
+  RENT
+  SALARIES
+  UTILITIES
+  INTERNET_SOFTWARE
+  MAINTENANCE
+  MARKETING
+  CLEANING
+  STERILIZATION_CONSUMABLES
+  TRAINING
+  INSURANCE
+  FEES_TAXES
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+enum PriceListStatus {
+  DRAFT
+  REVIEWED
+  APPROVED
+  ARCHIVED
+}
+
+enum WasteType {
+  EXPIRED
+  DAMAGED
+  DISPENSING_EXCESS
+  CONTAMINATED_APPLICATION
+  FAILED_RESTORATION
+  LAB_REMAKE
+  OTHER
+}
+
+// ----------------------------------------------------
+// Models
+// ----------------------------------------------------
+
+model Clinic {
+  id                     String   @id @default(uuid())
+  name                   String
+  nameAr                 String
+  code                   String   @unique
+  location               String
+  currency               String   @default("EGP")
+  defaultTaxRate         Float    @default(0.0)
+  monthlyFixedExpenses   Float    @default(30000.0)
+  workingDaysPerMonth    Int      @default(26)
+  activeChairs           Int      @default(2)
+  dailyWorkingHours      Float    @default(8.0)
+  occupancyRate          Float    @default(0.70)
+  breakEvenTargetMonthly Float    @default(30000.0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  users              User[]
+  doctors            Doctor[]
+  patients           Patient[]
+  visits             Visit[]
+  procedures         Procedure[]
+  materials          Material[]
+  materialLots       MaterialLot[]
+  stockMovements     StockMovement[]
+  services           ServiceCatalog[]
+  suppliers          Supplier[]
+  purchaseOrders     PurchaseOrder[]
+  supplierPayments   SupplierPayment[]
+  dentalLabs         DentalLab[]
+  labOrders          LabOrder[]
+  patientInvoices    PatientInvoice[]
+  patientPayments    PatientPayment[]
+  expenses           Expense[]
+  financialAccounts  FinancialAccount[]
+  fixedAssets        FixedAsset[]
+  reusableInstruments ReusableInstrument[]
+  pricingPolicies    PricingPolicy[]
+  priceListVersions  PriceListVersion[]
+  whatIfScenarios    WhatIfScenario[]
+  marketBenchmarks   MarketBenchmark[]
+  wasteRecords       WasteRecord[]
+  auditLogs          AuditLog[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  clinicId     String
+  clinic       Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(DOCTOR)
+  phone        String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  stockMovements StockMovement[]
+  auditLogs      AuditLog[]
+}
+
+model Doctor {
+  id                    String                  @id @default(uuid())
+  clinicId              String
+  clinic                Clinic                  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name                  String
+  nameAr                String
+  specialty             String
+  phone                 String?
+  email                 String?
+  compensationModel     DoctorCompensationModel @default(PERCENT_COLLECTED)
+  defaultCommissionRate Float                   @default(35.0) // 35%
+  monthlySalary         Float                   @default(0.0)
+  active                Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  compensationRules DoctorCompensationRule[]
+  visits            Visit[]
+  procedures        Procedure[]
+  wasteRecords      WasteRecord[]
+}
+
+model DoctorCompensationRule {
+  id             String                  @id @default(uuid())
+  doctorId       String
+  doctor         Doctor                  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  serviceId      String?
+  service        ServiceCatalog?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  commissionRate Float
+  deductionType  String                  @default("LAB_ONLY") // LAB_ONLY, LAB_AND_MATERIALS, NONE
+  appliesTo      String                  @default("COLLECTED") // COLLECTED, BILLED
+  createdAt      DateTime                @default(now())
+}
+
+model Patient {
+  id             String    @id @default(uuid())
+  clinicId       String
+  clinic         Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientNumber  String
+  name           String
+  phone          String
+  emergencyPhone String?
+  birthDate      DateTime?
+  gender         String?   // MALE, FEMALE
+  medicalHistory String?
+  address        String?
+  currentBalance Float     @default(0.0) // Positive means patient owes money, negative is deposit
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  visits          Visit[]
+  procedures      Procedure[]
+  patientInvoices PatientInvoice[]
+  patientPayments PatientPayment[]
+  labOrders       LabOrder[]
+
+  @@unique([clinicId, patientNumber])
+}
+
+model Visit {
+  id             String    @id @default(uuid())
+  clinicId       String
+  clinic         Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         Doctor    @relation(fields: [doctorId], references: [id])
+  visitDate      DateTime  @default(now())
+  chiefComplaint String?
+  diagnosis      String?
+  status         String    @default("COMPLETED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  totalAmount    Float     @default(0.0)
+  totalPaid      Float     @default(0.0)
+  balance        Float     @default(0.0)
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  procedures      Procedure[]
+  patientInvoices PatientInvoice[]
+}
+
+model Material {
+  id                   String           @id @default(uuid())
+  clinicId             String?          // null for shared master templates
+  clinic               Clinic?          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  sku                  String
+  name                 String
+  nameAr               String
+  brand                String
+  manufacturer         String
+  category             MaterialCategory
+  subcategory          String?
+  intendedUse          String?
+  packageUnit          PackageUnit      @default(SYRINGE)
+  packageQuantity      Float            @default(1.0)
+  baseUnit             BaseUnit         @default(G)
+  conversionFactor     Float            @default(4.0) // e.g. 1 syringe = 4 g, 1 bottle = 5 ml
+  unusableWastePercent Float            @default(5.0)
+  costPerBaseUnit      Float            @default(0.0)
+  reorderThreshold     Float            @default(2.0)
+  minStockLevel        Float            @default(1.0)
+  storageTemp          String?
+  evidenceLevel        EvidenceLevel    @default(DENTIST_ESTIMATE)
+  notes                String?
+  active               Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  lots                  MaterialLot[]
+  stockMovements        StockMovement[]
+  recipeItems           RecipeItem[]
+  procedureConsumptions ProcedureConsumption[]
+  purchaseOrderItems    PurchaseOrderItem[]
+  wasteRecords          WasteRecord[]
+
+  @@unique([clinicId, sku])
+}
+
+model MaterialLot {
+  id                    String        @id @default(uuid())
+  clinicId              String
+  clinic                Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  materialId            String
+  material              Material      @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  supplierId            String?
+  supplier              Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  lotNumber             String
+  expiryDate            DateTime
+  purchaseDate          DateTime      @default(now())
+  purchasePrice         Float         // Total price paid for this lot
+  purchaseQuantityUnits Float         // Packages bought
+  currentStockBaseUnits Float         // Current stock in base units (g, ml, pcs)
+  unitCostBaseUnit      Float         // Effective cost per base unit
+  status                LotStatus     @default(ACTIVE)
+  invoiceReference      String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  stockMovements        StockMovement[]
+  procedureConsumptions ProcedureConsumption[]
+  wasteRecords          WasteRecord[]
+
+  @@index([clinicId, materialId, expiryDate])
+}
+
+model StockMovement {
+  id                String            @id @default(uuid())
+  clinicId          String
+  clinic            Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  materialId        String
+  material          Material          @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  lotId             String?
+  lot               MaterialLot?      @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  movementType      StockMovementType
+  quantityBaseUnits Float             // Positive for additions, negative for deductions
+  unit              BaseUnit
+  unitCost          Float
+  totalCost         Float
+  reason            String
+  procedureId       String?
+  procedure         Procedure?        @relation(fields: [procedureId], references: [id], onDelete: SetNull)
+  purchaseOrderId   String?
+  purchaseOrder     PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  createdById       String?
+  createdBy         User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime          @default(now())
+
+  @@index([clinicId, materialId, createdAt])
+}
+
+model ServiceCatalog {
+  id                    String           @id @default(uuid())
+  clinicId              String?
+  clinic                Clinic?          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  code                  String
+  name                  String
+  nameAr                String
+  specialty             String
+  category              String
+  description           String?
+  durationMinutes       Int              @default(45)
+  standardPrice         Float            @default(0.0)
+  minCostRecoveryPrice  Float            @default(0.0)
+  targetContributionPrice Float          @default(0.0)
+  targetFullMarginPrice Float            @default(0.0)
+  chairTimeMinutes      Int              @default(45)
+  active                Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  recipes               ConsumptionRecipe[]
+  procedures            Procedure[]
+  doctorOverrides       DoctorCompensationRule[]
+
+  @@unique([clinicId, code])
+}
+
+model ConsumptionRecipe {
+  id              String          @id @default(uuid())
+  clinicId        String?
+  serviceId       String
+  service         ServiceCatalog  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name            String
+  restorationType RestorationType @default(GENERAL)
+  isDefault       Boolean         @default(true)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items RecipeItem[]
+}
+
+model RecipeItem {
+  id                    String            @id @default(uuid())
+  recipeId              String
+  recipe                ConsumptionRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  materialId            String
+  material              Material          @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  standardQuantity      Float
+  unit                  BaseUnit
+  wasteAllowancePercent Float             @default(5.0)
+  notes                 String?
+}
+
+model Procedure {
+  id                  String          @id @default(uuid())
+  clinicId            String
+  clinic              Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  visitId             String
+  visit               Visit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  patientId           String
+  patient             Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId            String
+  doctor              Doctor          @relation(fields: [doctorId], references: [id])
+  serviceId           String
+  service             ServiceCatalog  @relation(fields: [serviceId], references: [id])
+  toothNumber         String?         // FDI e.g. "16", "21", "36"
+  surfaces            String?         // e.g. "MOD", "B", "O", "DO"
+  status              ProcedureStatus @default(COMPLETED)
+  durationMinutes     Int             @default(45)
+  standardPrice       Float           @default(0.0)
+  actualBilledPrice   Float           @default(0.0)
+  discountAmount      Float           @default(0.0)
+  netEarnedRevenue    Float           @default(0.0)
+  directMaterialCost  Float           @default(0.0)
+  labCost             Float           @default(0.0)
+  doctorCompensation  Float           @default(0.0)
+  allocatedOverhead   Float           @default(0.0)
+  contributionMargin  Float           @default(0.0)
+  fullOperatingProfit Float           @default(0.0)
+  notes               String?
+  finalizedAt         DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  consumptions   ProcedureConsumption[]
+  stockMovements StockMovement[]
+  labOrders      LabOrder[]
+
+  @@index([clinicId, visitId])
+  @@index([clinicId, doctorId])
+  @@index([clinicId, finalizedAt])
+}
+
+model ProcedureConsumption {
+  id             String    @id @default(uuid())
+  procedureId    String
+  procedure      Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  materialId     String
+  material       Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  lotId          String?
+  lot            MaterialLot? @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  actualQuantity Float
+  unit           BaseUnit
+  unitCost       Float
+  totalCost      Float
+  measuredMethod String    @default("ESTIMATED") // ESTIMATED, DIRECTLY_MEASURED, RECONCILED
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([procedureId, materialId])
+}
+
+model Supplier {
+  id             String          @id @default(uuid())
+  clinicId       String
+  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name           String
+  contactPerson  String?
+  phone          String
+  email          String?
+  address        String?
+  taxNumber      String?
+  currentBalance Float           @default(0.0) // Positive means we owe the supplier
+  paymentTerms   String?
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  lots             MaterialLot[]
+  purchaseOrders   PurchaseOrder[]
+  supplierPayments SupplierPayment[]
+}
+
+model PurchaseOrder {
+  id             String              @id @default(uuid())
+  clinicId       String
+  clinic         Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  supplierId     String
+  supplier       Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  orderNumber    String
+  invoiceNumber  String?
+  status         PurchaseOrderStatus @default(RECEIVED)
+  orderDate      DateTime            @default(now())
+  receivedDate   DateTime?
+  subtotal       Float               @default(0.0)
+  shippingCost   Float               @default(0.0)
+  discount       Float               @default(0.0)
+  totalAmount    Float               @default(0.0)
+  paidAmount     Float               @default(0.0)
+  paymentStatus  PaymentStatus       @default(UNPAID)
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  items          PurchaseOrderItem[]
+  payments       SupplierPayment[]
+  stockMovements StockMovement[]
+
+  @@unique([clinicId, orderNumber])
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(uuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  materialId       String
+  material         Material      @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  quantityOrdered  Float
+  quantityReceived Float
+  packageUnit      PackageUnit
+  packagePrice     Float
+  subtotal         Float
+  lotNumber        String?
+  expiryDate       DateTime?
+}
+
+model SupplierPayment {
+  id                 String           @id @default(uuid())
+  clinicId           String
+  clinic             Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  supplierId         String
+  supplier           Supplier         @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  purchaseOrderId    String?
+  purchaseOrder      PurchaseOrder?   @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  financialAccountId String
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  amount             Float
+  paymentDate        DateTime         @default(now())
+  paymentMethod      PaymentMethod    @default(CASH)
+  referenceNumber    String?
+  notes              String?
+  createdAt          DateTime         @default(now())
+}
+
+model DentalLab {
+  id             String     @id @default(uuid())
+  clinicId       String
+  clinic         Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String
+  contactPerson  String?
+  currentBalance Float      @default(0.0) // Positive means clinic owes the lab
+  active         Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  labOrders LabOrder[]
+}
+
+model LabOrder {
+  id                   String         @id @default(uuid())
+  clinicId             String
+  clinic               Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  labId                String
+  lab                  DentalLab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  patientId            String
+  patient              Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  procedureId          String?
+  procedure            Procedure?     @relation(fields: [procedureId], references: [id], onDelete: SetNull)
+  orderNumber          String
+  toothNumber          String?
+  restorationType      String         // Zirconia, E.max, Composite Overlay, etc.
+  shade                String?
+  status               LabOrderStatus @default(DELIVERED)
+  sentDate             DateTime       @default(now())
+  expectedDeliveryDate DateTime?
+  receivedDate         DateTime?
+  quotedCost           Float          @default(0.0)
+  finalCost            Float          @default(0.0)
+  isRemake             Boolean        @default(false)
+  remakeReason         String?
+  paymentStatus        PaymentStatus  @default(UNPAID)
+  notes                String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@unique([clinicId, orderNumber])
+}
+
+model PatientInvoice {
+  id             String        @id @default(uuid())
+  clinicId       String
+  clinic         Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  visitId        String
+  visit          Visit         @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  invoiceNumber  String
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime?
+  subtotal       Float         @default(0.0)
+  discountAmount Float         @default(0.0)
+  totalAmount    Float         @default(0.0)
+  paidAmount     Float         @default(0.0)
+  balance        Float         @default(0.0)
+  status         PaymentStatus @default(UNPAID)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  payments PatientPayment[]
+
+  @@unique([clinicId, invoiceNumber])
+}
+
+model PatientPayment {
+  id                 String           @id @default(uuid())
+  clinicId           String
+  clinic             Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  invoiceId          String
+  invoice            PatientInvoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  patientId          String
+  patient            Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  financialAccountId String
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  amount             Float
+  paymentDate        DateTime         @default(now())
+  paymentMethod      PaymentMethod    @default(CASH)
+  reference          String?
+  notes              String?
+  createdAt          DateTime         @default(now())
+}
+
+model FinancialAccount {
+  id             String               @id @default(uuid())
+  clinicId       String
+  clinic         Clinic               @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  code           String
+  name           String
+  nameAr         String
+  accountType    FinancialAccountType @default(CASH_DRAWER)
+  currency       String               @default("EGP")
+  openingBalance Float                @default(0.0)
+  currentBalance Float                @default(0.0)
+  active         Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  patientPayments  PatientPayment[]
+  supplierPayments SupplierPayment[]
+  expenses         Expense[]
+
+  @@unique([clinicId, code])
+}
+
+model Expense {
+  id                 String           @id @default(uuid())
+  clinicId           String
+  clinic             Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  category           ExpenseCategory
+  financialAccountId String?
+  financialAccount   FinancialAccount? @relation(fields: [financialAccountId], references: [id], onDelete: SetNull)
+  title              String
+  description        String?
+  amount             Float
+  expenseDate        DateTime         @default(now())
+  isRecurring        Boolean          @default(false)
+  recurringFrequency String?          // MONTHLY, YEARLY
+  paymentStatus      PaymentStatus    @default(PAID)
+  receiptUrl         String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([clinicId, category, expenseDate])
+}
+
+model FixedAsset {
+  id                       String      @id @default(uuid())
+  clinicId                 String
+  clinic                   Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  assetCode                String
+  name                     String
+  nameAr                   String
+  category                 String      // CHAIR_UNIT, AUTOCLAVE, XRAY_SENSOR, INTRAORAL_SCANNER, HANDPIECE, etc.
+  purchaseDate             DateTime
+  historicalCost           Float
+  usefulLifeMonths         Int         @default(60) // 5 years default
+  accumulatedDepreciation  Float       @default(0.0)
+  monthlyDepreciation      Float       @default(0.0)
+  replacementCostEstimate  Float?      // Optional estimated replacement cost
+  expectedReplacementDate  DateTime?
+  status                   AssetStatus @default(ACTIVE)
+  notes                    String?
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+
+  @@unique([clinicId, assetCode])
+}
+
+model ReusableInstrument {
+  id                      String   @id @default(uuid())
+  clinicId                String
+  clinic                  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name                    String
+  nameAr                  String
+  category                String   // BUR_DIAMOND, BUR_CARBIDE, RUBBER_DAM_CLAMP, ENDO_ROTARY_FILE, RESIN_CARVER, etc.
+  purchasePrice           Float
+  expectedLifetimeUses    Int      @default(20)
+  currentUseCount         Int      @default(0)
+  costPerUse              Float    @default(0.0)
+  sterilizationCycleCost  Float    @default(5.0) // EGP
+  maintenanceCostPerUse   Float    @default(0.0)
+  retirementThresholdUses Int      @default(25)
+  status                  String   @default("ACTIVE")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model PricingPolicy {
+  id                         String   @id @default(uuid())
+  clinicId                   String
+  clinic                     Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name                       String
+  category                   String
+  doctorCommissionBase       String   @default("COLLECTED_PRICE") // BILLED_PRICE, COLLECTED_PRICE, PRICE_LESS_LAB, PRICE_LESS_LAB_AND_MATERIALS
+  clinicTargetMarginPercent  Float    @default(30.0)
+  bufferContingencyPercent   Float    @default(5.0)
+  taxPercent                 Float    @default(0.0)
+  defaultCommissionPercent   Float    @default(35.0)
+  active                     Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
+model PriceListVersion {
+  id            String          @id @default(uuid())
+  clinicId      String
+  clinic        Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  versionNumber String
+  title         String
+  status        PriceListStatus @default(APPROVED)
+  effectiveDate DateTime        @default(now())
+  approvedBy    String?
+  notes         String?
+  snapshotData  Json            // Full frozen JSON snapshot of services, prices, costs, margin rules
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([clinicId, versionNumber])
+}
+
+model WhatIfScenario {
+  id                String   @id @default(uuid())
+  clinicId          String
+  clinic            Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  title             String
+  notes             String?
+  baseParameters    Json     // rent, salaries, chairs, occupancy, doctor %
+  comparisonResults Json     // chair-hour cost, recommended prices, break-even
+  isApprovedDraft   Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model MarketBenchmark {
+  id                 String   @id @default(uuid())
+  clinicId           String
+  clinic             Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  specialty          String
+  serviceName        String
+  geographicArea     String   // ASWAN_KOM_OMBO, UPPER_EGYPT, CAIRO_PREMIUM, NATIONAL_AVERAGE
+  clinicTier         String   // PREMIUM_BIOMIMETIC, STANDARD_PRIVATE, GOVERNMENT
+  lowPrice           Float
+  highPrice          Float
+  averagePrice       Float
+  source             String
+  dateCollected      DateTime @default(now())
+  comparabilityNotes String?
+  createdAt          DateTime @default(now())
+}
+
+model WasteRecord {
+  id                String      @id @default(uuid())
+  clinicId          String
+  clinic            Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  materialId        String
+  material          Material    @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  lotId             String?
+  lot               MaterialLot? @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  procedureId       String?
+  doctorId          String?
+  doctor            Doctor?     @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  wasteType         WasteType
+  quantity          Float
+  unit              BaseUnit
+  estimatedLossCost Float
+  reasonNotes       String?
+  createdAt         DateTime    @default(now())
+
+  @@index([clinicId, materialId, wasteType])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action        String   // CREATE, UPDATE, DELETE, FINALIZE, REVERSE, OVERRIDE
+  entityName    String
+  entityId      String
+  previousValue Json?
+  newValue      Json?
+  reason        String?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  @@index([clinicId, entityName, createdAt])
+}
