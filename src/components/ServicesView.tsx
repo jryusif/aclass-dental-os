@@ -45,8 +45,29 @@ export default function ServicesView({
 }: ServicesViewProps) {
   const { t } = useApp();
   const [services, setServices] = useState(initialServices);
+  const [materialsList, setMaterialsList] = useState(materials);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+
+  // Load custom materials saved locally across tabs so they immediately appear in dropdowns
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('dental_os_custom_materials');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map();
+          parsed.forEach((m: any) => map.set(m.id, m));
+          materials.forEach((m: any) => {
+            if (!map.has(m.id)) map.set(m.id, m);
+          });
+          setMaterialsList(Array.from(map.values()));
+        }
+      }
+    } catch (e) {
+      console.warn('LocalStorage load error in ServicesView:', e);
+    }
+  }, [materials]);
 
   // Branch Chair-Minute Rate Calculation
   const chairs = clinic?.activeChairs || 2;
@@ -139,7 +160,7 @@ export default function ServicesView({
 
   // 1. Chemicals Total Cost
   const chemicalTotalCost = selectedChemicals.reduce((acc, item) => {
-    const mat = materials.find((m) => m.id === item.materialId);
+    const mat = materialsList.find((m) => m.id === item.materialId);
     if (!mat) return acc;
     const wasteFactor = 1 + (mat.unusableWastePercent || 10) / 100;
     return acc + (item.quantity * mat.costPerBaseUnit * wasteFactor);
@@ -147,7 +168,7 @@ export default function ServicesView({
 
   // 2. Disposables Total Cost
   const disposablesTotalCost = selectedDisposables.reduce((acc, item) => {
-    const mat = materials.find((m) => m.id === item.materialId);
+    const mat = materialsList.find((m) => m.id === item.materialId);
     if (!mat) return acc;
     const wasteFactor = 1 + (mat.unusableWastePercent || 5) / 100;
     return acc + (item.quantity * mat.costPerBaseUnit * wasteFactor);
@@ -597,7 +618,7 @@ export default function ServicesView({
 
                 <div className="space-y-2">
                   {selectedChemicals.map((chem, idx) => {
-                    const mat = materials.find((m) => m.id === chem.materialId);
+                    const mat = materialsList.find((m) => m.id === chem.materialId);
                     const cost = mat
                       ? chem.quantity * mat.costPerBaseUnit * (1 + (mat.unusableWastePercent || 10) / 100)
                       : 0;
@@ -618,7 +639,7 @@ export default function ServicesView({
                           }
                           className="flex-1 p-2 rounded-lg border border-slate-300 bg-slate-50 text-xs font-medium"
                         >
-                          {materials
+                          {materialsList
                             .filter((m) => m.category !== 'SINGLE_USE_DISPOSABLE')
                             .map((m) => (
                               <option key={m.id} value={m.id}>
@@ -703,7 +724,7 @@ export default function ServicesView({
 
                 <div className="space-y-2">
                   {selectedDisposables.map((disp, idx) => {
-                    const mat = materials.find((m) => m.id === disp.materialId);
+                    const mat = materialsList.find((m) => m.id === disp.materialId);
                     const cost = mat
                       ? disp.quantity * mat.costPerBaseUnit * (1 + (mat.unusableWastePercent || 5) / 100)
                       : 0;
@@ -724,7 +745,7 @@ export default function ServicesView({
                           }
                           className="flex-1 p-2 rounded-lg border border-slate-300 bg-slate-50 text-xs font-medium"
                         >
-                          {materials.map((m) => (
+                          {materialsList.map((m) => (
                             <option key={m.id} value={m.id}>
                               {m.nameAr || m.name} ({m.costPerBaseUnit.toFixed(2)} ج.م / {m.baseUnit})
                             </option>
