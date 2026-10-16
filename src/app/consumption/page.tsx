@@ -3,14 +3,20 @@ import { prisma } from '@/lib/prisma';
 import ConsumptionCalculatorView from '@/components/ConsumptionCalculatorView';
 import DbNotice from '@/components/DbNotice';
 
+import { getActiveClinic } from '@/lib/get-active-clinic';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function ConsumptionPage() {
+export default async function ConsumptionPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   if (!process.env.DATABASE_URL) return <DbNotice />;
 
   try {
-    const clinic = await prisma.clinic.findFirst();
+    const clinic = await getActiveClinic(searchParams);
     if (!clinic) return <DbNotice />;
 
     const materials = await prisma.material.findMany({

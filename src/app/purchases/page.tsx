@@ -5,14 +5,20 @@ import { Truck, Package, Clock, ShieldCheck } from 'lucide-react';
 
 import DbNotice from '@/components/DbNotice';
 
+import { getActiveClinic } from '@/lib/get-active-clinic';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function PurchasesPage() {
+export default async function PurchasesPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   if (!process.env.DATABASE_URL) return <DbNotice />;
 
   try {
-    const clinic = await prisma.clinic.findFirst();
+    const clinic = await getActiveClinic(searchParams);
     if (!clinic) return <DbNotice />;
 
     const suppliers = await prisma.supplier.findMany({

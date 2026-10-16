@@ -84,7 +84,16 @@ export default function Sidebar() {
           <div className="relative">
             <select
               value={currentClinicId}
-              onChange={(e) => setCurrentClinicId(e.target.value)}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setCurrentClinicId(newId);
+                if (typeof window !== 'undefined') {
+                  document.cookie = `clinicId=${newId}; path=/; max-age=31536000`;
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('clinicId', newId);
+                  window.location.href = url.toString();
+                }
+              }}
               className="w-full bg-navy-850 hover:bg-navy-800 border border-navy-700 rounded-md py-1.5 px-2.5 text-xs text-white appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-sage-500 cursor-pointer"
             >
               {clinics.map((c) => (

@@ -3,14 +3,20 @@ import { prisma } from '@/lib/prisma';
 import ServicesView from '@/components/ServicesView';
 import DbNotice from '@/components/DbNotice';
 
+import { getActiveClinic } from '@/lib/get-active-clinic';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function ServicesPage() {
+export default async function ServicesPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   if (!process.env.DATABASE_URL) return <DbNotice />;
 
   try {
-    const clinic = await prisma.clinic.findFirst();
+    const clinic = await getActiveClinic(searchParams);
     if (!clinic) return <DbNotice />;
 
     const services = await prisma.serviceCatalog.findMany({

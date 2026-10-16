@@ -1,12 +1,24 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getDashboardData, getMaterialsWithLots, getServicesWithRecipes, getPatientsWithCases, getDoctors, getSuppliers } from '@/lib/data-service';
+import { getActiveClinic } from '@/lib/get-active-clinic';
+import {
+  getDashboardData,
+  getMaterialsWithLots,
+  getServicesWithRecipes,
+  getPatientsWithCases,
+  getDoctors,
+  getSuppliers,
+} from '@/lib/data-service';
 import DashboardClient from '@/components/DashboardClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   let defaultClinic: any = null;
   let dashboardData: any = null;
   let materials: any[] = [];
@@ -16,16 +28,14 @@ export default async function DashboardPage() {
   let suppliers: any[] = [];
 
   try {
-    if (process.env.DATABASE_URL) {
-      defaultClinic = await prisma.clinic.findFirst();
-      if (defaultClinic) {
-        dashboardData = await getDashboardData(defaultClinic.id);
-        materials = await getMaterialsWithLots(defaultClinic.id);
-        services = await getServicesWithRecipes(defaultClinic.id);
-        patients = await getPatientsWithCases(defaultClinic.id);
-        doctors = await getDoctors(defaultClinic.id);
-        suppliers = await getSuppliers(defaultClinic.id);
-      }
+    defaultClinic = await getActiveClinic(searchParams);
+    if (defaultClinic) {
+      dashboardData = await getDashboardData(defaultClinic.id);
+      materials = await getMaterialsWithLots(defaultClinic.id);
+      services = await getServicesWithRecipes(defaultClinic.id);
+      patients = await getPatientsWithCases(defaultClinic.id);
+      doctors = await getDoctors(defaultClinic.id);
+      suppliers = await getSuppliers(defaultClinic.id);
     }
   } catch (err) {
     console.warn('Database query during page load warning:', err);

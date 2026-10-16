@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { calculateChairCost, solveServicePrice } from '@/lib/pricing-engine';
 import { calculateBreakEven } from '@/lib/break-even';
+import GuideTooltip from './GuideTooltip';
 
 interface WhatIfSimulatorViewProps {
   clinic: any;
@@ -264,12 +265,15 @@ export default function WhatIfSimulatorView({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
               {/* Rent */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700">
-                  <span>إيجار العيادة الشهري (ج.م):</span>
-                  <span className="font-mono text-navy-900">{rent.toLocaleString()} ج.م</span>
+              <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
+                  <span>إيجار العيادة الشهري:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-navy-900 font-bold">{rent.toLocaleString()} ج.م</span>
+                    <GuideTooltip topicId="breakEvenTarget" label="دليل الإيجار" />
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -283,10 +287,13 @@ export default function WhatIfSimulatorView({
               </div>
 
               {/* Salaries */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700">
-                  <span>رواتب التمريض والإدارة الثابتة (ج.م):</span>
-                  <span className="font-mono text-navy-900">{salaries.toLocaleString()} ج.م</span>
+              <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
+                  <span>رواتب التمريض والإدارة الثابتة:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-navy-900 font-bold">{salaries.toLocaleString()} ج.م</span>
+                    <GuideTooltip topicId="breakEvenTarget" label="دليل الرواتب" />
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -300,10 +307,13 @@ export default function WhatIfSimulatorView({
               </div>
 
               {/* Chairs Count */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700">
+              <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
                   <span>عدد الكراسي النشطة بالعيادة:</span>
-                  <span className="font-mono text-navy-900">{chairs} كراسي</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-navy-900 font-bold">{chairs} كراسي</span>
+                    <GuideTooltip topicId="occupancyRate" label="دليل الكراسي" />
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -317,10 +327,17 @@ export default function WhatIfSimulatorView({
               </div>
 
               {/* Occupancy Rate */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700">
-                  <span>معدل إشغال الكرسي الفعلي (%):</span>
-                  <span className="font-mono text-navy-900">{(occupancyRate * 100).toFixed(0)}%</span>
+              <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
+                  <span>معدل إشغال الكرسي الفعلي:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-teal-800 font-bold">{(occupancyRate * 100).toFixed(0)}%</span>
+                    <GuideTooltip
+                      topicId="occupancyRate"
+                      label="أفضل نسبة موصى بها"
+                      onApply={(val) => setOccupancyRate(Number(val))}
+                    />
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -329,15 +346,22 @@ export default function WhatIfSimulatorView({
                   step="0.05"
                   value={occupancyRate}
                   onChange={(e) => setOccupancyRate(Number(e.target.value))}
-                  className="w-full accent-sage-600"
+                  className="w-full accent-teal-600"
                 />
               </div>
 
               {/* Doctor Commission */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700">
-                  <span>نسبة عمولة الطبيب المقترحة (%):</span>
-                  <span className="font-mono text-amber-700 font-bold">{doctorCommissionPercent}%</span>
+              <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
+                  <span>نسبة عمولة الطبيب المعالج:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-amber-700 font-bold">{doctorCommissionPercent}%</span>
+                    <GuideTooltip
+                      topicId="doctorCommission"
+                      label="دليل عمولات الأطباء"
+                      onApply={(val) => setDoctorCommissionPercent(Number(val))}
+                    />
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -351,10 +375,17 @@ export default function WhatIfSimulatorView({
               </div>
 
               {/* Target Margin */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700">
-                  <span>هامش ربح العيادة المستهدف (%):</span>
-                  <span className="font-mono text-emerald-700 font-bold">{targetMarginPercent}%</span>
+              <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
+                  <span>هامش ربح العيادة المستهدف:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-emerald-700 font-bold">{targetMarginPercent}%</span>
+                    <GuideTooltip
+                      topicId="clinicMargin"
+                      label="دليل هامش الربح"
+                      onApply={(val) => setTargetMarginPercent(Number(val))}
+                    />
+                  </div>
                 </div>
                 <input
                   type="range"

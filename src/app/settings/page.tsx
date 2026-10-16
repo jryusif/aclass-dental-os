@@ -1,23 +1,33 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Header from '@/components/Header';
-import { Settings, Shield, Clock, Database, Users, Key, AlertTriangle } from 'lucide-react';
-
+import { Settings, Shield, Users } from 'lucide-react';
 import DbNotice from '@/components/DbNotice';
+import { getActiveClinic } from '@/lib/get-active-clinic';
+import BranchSettingsClient from '@/components/BranchSettingsClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   if (!process.env.DATABASE_URL) return <DbNotice />;
 
   let clinic: any = null;
+  let allClinics: any[] = [];
   let users: any[] = [];
   let auditLogs: any[] = [];
 
   try {
-    clinic = await prisma.clinic.findFirst();
+    clinic = await getActiveClinic(searchParams);
     if (!clinic) return <DbNotice />;
+
+    allClinics = await prisma.clinic.findMany({
+      orderBy: { createdAt: 'asc' },
+    });
 
     users = await prisma.user.findMany({
       where: { clinicId: clinic.id },
@@ -35,74 +45,25 @@ export default async function SettingsPage() {
     return <DbNotice />;
   }
 
-
-
   return (
     <div className="flex-1 flex flex-col">
       <Header
-        title="إعدادات العيادة وسجل التدقيق (Clinic Settings & Audit Trail)"
-        subtitle="تهيئة ساعات العمل، عدد الكراسي، المصاريف الشهرية، وصلاحيات المستخدمين، وسجل التدقيق الرقابي"
+        title="إعدادات فروع المركز وسجل التدقيق (Clinic Settings & Branches)"
+        subtitle="إدارة بيانات الفروع وساعات العمل وعدد الكراسي والمصروفات الثابتة المستقلة لكل فرع، ودليل النسب الاستشاري، وصلاحيات المستخدمين"
       />
 
       <div className="p-6 space-y-6">
-        {/* Clinic Baseline Configuration */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
-              <Settings className="w-4 h-4 text-sage-600" />
-              البيانات التشغيلية والافتراضات المعتمدة للعيادة
-            </h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sage-50 text-sage-800 font-bold border border-sage-200">
-              {clinic.code}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-              <span className="text-slate-500 text-[10px] block">اسم العيادة الرسمي</span>
-              <p className="font-bold text-navy-900 mt-1">{clinic.nameAr}</p>
-              <p className="text-[10px] text-slate-400 font-sans">{clinic.name}</p>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-              <span className="text-slate-500 text-[10px] block">الموقع الجغرافي والفرع</span>
-              <p className="font-bold text-navy-900 mt-1">{clinic.location}</p>
-              <p className="text-[10px] text-slate-400">العملة الأساسية: {clinic.currency}</p>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-              <span className="text-slate-500 text-[10px] block">المصاريف التشغيلية الثابتة شهرياً</span>
-              <p className="font-bold font-mono text-navy-900 mt-1">
-                {clinic.monthlyFixedExpenses.toLocaleString()} ج.م
-              </p>
-              <p className="text-[10px] text-slate-400">أساس احتساب نقطة التعادل</p>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-              <span className="text-slate-500 text-[10px] block">عدد الكراسي النشطة بالعيادة</span>
-              <p className="font-bold font-mono text-navy-900 mt-1">{clinic.activeChairs} كراسي</p>
-              <p className="text-[10px] text-slate-400">ساعات العمل اليومية: {clinic.dailyWorkingHours} ساعات</p>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-              <span className="text-slate-500 text-[10px] block">أيام العمل الشهرية</span>
-              <p className="font-bold font-mono text-navy-900 mt-1">{clinic.workingDaysPerMonth} يوماً / شهر</p>
-              <p className="text-[10px] text-slate-400">معدل الإشغال المخطط: {(clinic.occupancyRate * 100).toFixed(0)}%</p>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
-              <span className="text-slate-500 text-[10px] block">قاعدة البيانات السحابية (Neon)</span>
-              <p className="font-bold font-mono text-emerald-700 mt-1">AWS us-east-2</p>
-              <p className="text-[10px] text-slate-400">PostgreSQL 18</p>
-            </div>
-          </div>
-        </div>
+        {/* Dynamic Branch Settings with GuideTooltips */}
+        <BranchSettingsClient
+          initialClinics={allClinics}
+          activeClinicId={clinic.id}
+        />
 
         {/* Roles and Users Table */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3">
           <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
             <Users className="w-4 h-4 text-navy-700" />
-            صلاحيات المستخدمين السريريين والإداريين (Role-Based Access)
+            صلاحيات المستخدمين السريريين والإداريين بالفرع النشط (Role-Based Access)
           </h3>
 
           <div className="overflow-x-auto">

@@ -19,6 +19,7 @@ import {
   calculateMaterialEstimation,
   estimateBondingProtocolCost,
 } from '@/lib/consumption-estimator';
+import GuideTooltip from './GuideTooltip';
 
 interface ConsumptionCalculatorViewProps {
   materials: any[];
@@ -158,10 +159,13 @@ export default function ConsumptionCalculatorView({
         {activeTab === 'bonding' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
-                <Droplet className="w-4 h-4 text-sage-600" />
-                معايرة قطرات لاصق Clearfil SE Bond 2 (Primer vs Bond)
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
+                  <Droplet className="w-4 h-4 text-teal-600" />
+                  معايرة قطرات لاصق Clearfil SE Bond 2 (Primer vs Bond)
+                </h3>
+                <GuideTooltip topicId="idsProtocol" label="دليل بروتوكول الختم العاجي (IDS)" />
+              </div>
               <p className="text-xs text-slate-500">
                 حساب تكلفة البروتوكول اللاصق بدقة بعدد القطرات المنفصلة للبرايمر والبوند وتكلفة الميكروبرش
               </p>
@@ -323,9 +327,16 @@ export default function ConsumptionCalculatorView({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    نسبة الفاقد المتبقي بالسرنجة (% Waste)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-slate-700">
+                      نسبة الفاقد المتبقي بالسرنجة
+                    </label>
+                    <GuideTooltip
+                      topicId="bufferWasteFactor"
+                      label="دليل نسبة الفاقد"
+                      onApply={(val) => setCompWastePercent(Number(val))}
+                    />
+                  </div>
                   <input
                     type="number"
                     value={compWastePercent}
@@ -391,10 +402,13 @@ export default function ConsumptionCalculatorView({
         {activeTab === 'ribbond' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
-                <Scissors className="w-4 h-4 text-sage-600" />
-                حاسبة أشرطة ريبوند المقواة (Ribbond THM 2mm Fiber Ribbon)
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
+                  <Scissors className="w-4 h-4 text-teal-600" />
+                  حاسبة أشرطة ريبوند المقواة (Ribbond THM 2mm Fiber Ribbon)
+                </h3>
+                <GuideTooltip topicId="ribbondFiber" label="دليل استخدام ألياف ريبوند" />
+              </div>
 
               <div className="grid grid-cols-2 gap-3.5 pt-2">
                 <div>

@@ -4,14 +4,20 @@ import ReportsView from '@/components/ReportsView';
 import { calculateChairCost } from '@/lib/pricing-engine';
 import DbNotice from '@/components/DbNotice';
 
+import { getActiveClinic } from '@/lib/get-active-clinic';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function ReportsPage() {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   if (!process.env.DATABASE_URL) return <DbNotice />;
 
   try {
-    const clinic = await prisma.clinic.findFirst();
+    const clinic = await getActiveClinic(searchParams);
     if (!clinic) return <DbNotice />;
 
     const procedures = await prisma.procedure.findMany({

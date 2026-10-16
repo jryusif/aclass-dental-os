@@ -5,14 +5,20 @@ import { Users, Phone, MapPin, AlertCircle, FileText, Plus } from 'lucide-react'
 
 import DbNotice from '@/components/DbNotice';
 
+import { getActiveClinic } from '@/lib/get-active-clinic';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function PatientsPage() {
+export default async function PatientsPage({
+  searchParams,
+}: {
+  searchParams?: { clinicId?: string };
+}) {
   if (!process.env.DATABASE_URL) return <DbNotice />;
 
   try {
-    const clinic = await prisma.clinic.findFirst();
+    const clinic = await getActiveClinic(searchParams);
     if (!clinic) return <DbNotice />;
 
     const patients = await prisma.patient.findMany({
