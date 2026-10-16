@@ -2,11 +2,11 @@ export type Locale = 'ar' | 'en';
 
 export const translations = {
   ar: {
-    appName: 'نظام إيه كلاس لإدارة طب الأسنان والربحية',
-    appShortName: 'A-Class Dental OS',
+    appName: 'مركز القاهرة لطب وجراحة وتجميل الأسنان',
+    appShortName: 'Cairo Dental Center',
     tagline: 'كل خامة. كل حالة. كل جنيه.',
     currency: 'ج.م',
-    clinicLocation: 'كوم أمبو / أسوان - مصر',
+    clinicLocation: 'كوم امبو - نصر النوبة / أسوان',
     // Nav
     nav: {
       dashboard: 'لوحة المؤشرات',
@@ -103,11 +103,11 @@ export const translations = {
     },
   },
   en: {
-    appName: 'A-Class Dental OS & Profit Intelligence',
-    appShortName: 'A-Class Dental OS',
+    appName: 'Cairo Dental Center - Biomimetic & Aesthetic Dentistry',
+    appShortName: 'Cairo Dental Center',
     tagline: 'Every Material. Every Case. Every Pound.',
     currency: 'EGP',
-    clinicLocation: 'Kom Ombo / Aswan, Egypt',
+    clinicLocation: 'Kom Ombo & Nasr Al-Nuba / Aswan, Egypt',
     // Nav
     nav: {
       dashboard: 'Dashboard',

@@ -12,7 +12,7 @@ const nextConfig = {
       process.env.DIRECT_URL ||
       'postgresql://neondb_owner:npg_L1QxBiHJRf6T@ep-little-bird-b45navj8.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require',
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'aclass-dental-os-secure-token-2026-kom-ombo',
-    NEXT_PUBLIC_APP_NAME: 'A-Class Dental OS',
+    NEXT_PUBLIC_APP_NAME: 'Cairo Dental Center',
   },
 };
 

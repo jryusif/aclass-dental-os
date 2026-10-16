@@ -7,9 +7,9 @@ import Sidebar from '@/components/Sidebar';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'A-Class Dental OS | Every Material. Every Case. Every Pound.',
+  title: 'Cairo Dental Center | Biomimetic & Aesthetic Dentistry',
   description:
-    'Comprehensive dental clinic management, inventory control, biomimetic costing, and profit intelligence system for Kom Ombo / Aswan, Egypt.',
+    'مركز القاهرة لطب وجراحة وتجميل الأسنان - فرع كوم امبو وفرع نصر النوبة - د. محمد يوسف الحداد',
 };
 
 export default async function RootLayout({
@@ -40,10 +40,17 @@ export default async function RootLayout({
     clinics = [
       {
         id: '6e3140d3-9455-408b-9248-626b5ae68b44',
-        name: 'A-Class Dental Clinic',
-        nameAr: 'عيادة إيه كلاس لطب وجراحة وتجميل الأسنان',
-        code: 'ACLASS-ASWAN',
-        location: 'Kom Ombo / Aswan, Egypt',
+        name: 'Cairo Dental Center - Kom Ombo',
+        nameAr: 'كايرو دينتال سنتر - فرع كوم امبو',
+        code: 'CDC-KOMOMBO',
+        location: 'كوم امبو - أسوان',
+      },
+      {
+        id: '293c03d5-0fa8-4d79-ba9d-65ef6dcf4289',
+        name: 'Cairo Dental Center - Nasr Al-Nuba',
+        nameAr: 'كايرو دينتال سنتر - فرع نصر النوبة',
+        code: 'CDC-NASRNUBA',
+        location: 'نصر النوبة - أسوان',
       },
     ];
   }

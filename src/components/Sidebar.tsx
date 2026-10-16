@@ -58,20 +58,20 @@ export default function Sidebar() {
       {/* Brand & Logo */}
       <div className="p-5 border-b border-navy-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sage-500 to-navy-700 flex items-center justify-center shadow-lg shadow-sage-900/40 border border-sage-400/30">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-navy-700 flex items-center justify-center shadow-lg shadow-teal-900/40 border border-teal-400/30">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-lg tracking-tight text-white font-serif">
-                A-CLASS
+              <span className="font-bold text-base tracking-tight text-white font-serif">
+                CAIRO DENTAL
               </span>
-              <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-bronze-500 text-white">
-                OS
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-bronze-500 text-white">
+                CENTER
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-sans tracking-wide">
-              {t.tagline}
+              {locale === 'ar' ? 'مركز القاهرة لطب وتجميل الأسنان' : 'Biomimetic & Aesthetic Dentistry'}
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function Sidebar() {
           </div>
           <p className="text-[10px] text-sage-400/90 mt-1 flex items-center gap-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-sage-400 animate-pulse"></span>
-            {currentClinic?.location || 'Kom Ombo / Aswan'}
+            {currentClinic?.location || 'كوم امبو - أسوان'}
           </p>
         </div>
       </div>
@@ -139,16 +139,17 @@ export default function Sidebar() {
           </span>
         </button>
 
-        <div className="flex items-center gap-2.5 px-2 py-1.5">
-          <div className="w-8 h-8 rounded-full bg-bronze-600/30 border border-bronze-500/40 text-bronze-300 flex items-center justify-center font-bold text-xs">
-            د.أ
+        {/* Doctor Signature / Endorsement */}
+        <div className="mt-2 pt-2.5 border-t border-navy-800/80 flex items-center gap-2.5 px-2 py-1">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600/40 to-teal-500/30 border border-teal-400/40 text-teal-200 flex items-center justify-center font-bold text-xs shadow-inner shrink-0">
+            م.ح
           </div>
           <div className="truncate">
-            <p className="text-xs font-medium text-white truncate">
-              د. أحمد السيد
+            <p className="text-xs font-bold text-white truncate">
+              د. محمد يوسف الحداد
             </p>
-            <p className="text-[10px] text-slate-400 truncate">
-              استشاري التركيبات الحيوية (Owner)
+            <p className="text-[10px] text-teal-300/90 font-medium truncate tracking-tight">
+              Biomimetic and Aesthetic Specialist
             </p>
           </div>
         </div>

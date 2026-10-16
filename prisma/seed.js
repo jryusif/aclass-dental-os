@@ -6,13 +6,13 @@ async function main() {
 
   // 1. Clinics
   const mainClinic = await prisma.clinic.upsert({
-    where: { code: 'ACLASS-ASWAN' },
+    where: { code: 'CDC-KOMOMBO' },
     update: {},
     create: {
-      name: 'A-Class Dental Clinic',
-      nameAr: 'عيادة إيه كلاس لطب وجراحة وتجميل الأسنان',
-      code: 'ACLASS-ASWAN',
-      location: 'Kom Ombo / Aswan, Egypt',
+      name: 'Cairo Dental Center - Kom Ombo',
+      nameAr: 'كايرو دينتال سنتر - فرع كوم امبو',
+      code: 'CDC-KOMOMBO',
+      location: 'كوم امبو - أسوان',
       currency: 'EGP',
       defaultTaxRate: 0.0,
       monthlyFixedExpenses: 30000.0,
@@ -25,21 +25,21 @@ async function main() {
   });
 
   const branchClinic = await prisma.clinic.upsert({
-    where: { code: 'ACLASS-NILE' },
+    where: { code: 'CDC-NASRNUBA' },
     update: {},
     create: {
-      name: 'A-Class Nile Elite',
-      nameAr: 'إيه كلاس نايل إيليت - أسوان كورنيش',
-      code: 'ACLASS-NILE',
-      location: 'Corniche Al Nile, Aswan City',
+      name: 'Cairo Dental Center - Nasr Al-Nuba',
+      nameAr: 'كايرو دينتال سنتر - فرع نصر النوبة',
+      code: 'CDC-NASRNUBA',
+      location: 'نصر النوبة - أسوان',
       currency: 'EGP',
       defaultTaxRate: 0.0,
-      monthlyFixedExpenses: 45000.0,
+      monthlyFixedExpenses: 35000.0,
       workingDaysPerMonth: 26,
-      activeChairs: 3,
+      activeChairs: 2,
       dailyWorkingHours: 8.0,
       occupancyRate: 0.65,
-      breakEvenTargetMonthly: 45000.0,
+      breakEvenTargetMonthly: 35000.0,
     },
   });
 
@@ -99,17 +99,17 @@ async function main() {
   console.log(`Users seeded: ${users.length} clinical & administrative staff`);
 
   // 3. Doctors
-  const drAhmed = await prisma.doctor.create({
+  const drMohamed = await prisma.doctor.create({
     data: {
       clinicId: mainClinic.id,
-      name: 'Dr. Ahmed El-Sayed',
-      nameAr: 'د. أحمد السيد',
-      specialty: 'Biomimetic & Restorative Dentistry',
+      name: 'Dr. Mohamed Youssef Al-Haddad',
+      nameAr: 'د. محمد يوسف الحداد',
+      specialty: 'Biomimetic and Aesthetic Specialist',
       compensationModel: 'PERCENT_COLLECTED',
       defaultCommissionRate: 40.0,
       monthlySalary: 0.0,
       phone: '+201001234567',
-      email: 'owner@aclassdental.eg',
+      email: 'dr.mohamed@cairodental.eg',
     },
   });
 
@@ -833,7 +833,7 @@ async function main() {
     data: {
       clinicId: mainClinic.id,
       patientId: patient1.id,
-      doctorId: drAhmed.id,
+      doctorId: drMohamed.id,
       chiefComplaint: 'Pain on biting lower right molar',
       diagnosis: 'Defective amalgam with deep dentin caries #46',
       status: 'COMPLETED',
@@ -848,7 +848,7 @@ async function main() {
       clinicId: mainClinic.id,
       visitId: visit1.id,
       patientId: patient1.id,
-      doctorId: drAhmed.id,
+      doctorId: drMohamed.id,
       serviceId: serviceBioClass2.id,
       toothNumber: '46',
       surfaces: 'MOD',
